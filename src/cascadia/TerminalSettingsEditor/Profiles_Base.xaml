@@ -73,7 +73,7 @@
             <!--  SSH Configuration  -->
             <local:SettingContainer x:Name="SshConfiguration"
                                     Header="SSH configuration"
-                                    HelpText="Builds this profile command line from SSH connection settings. Password authentication prompts inside the terminal when the tab opens."
+                                    HelpText="Builds this profile command line from SSH connection settings. Passwords are stored in Windows Credential Manager."
                                     Style="{StaticResource ExpanderSettingContainerStyle}"
                                     Visibility="{x:Bind mtu:Converters.InvertedBooleanToVisibility(Profile.IsBaseLayer), Mode=OneWay}">
                 <StackPanel Orientation="Vertical">
@@ -99,9 +99,13 @@
                               Margin="0,8,0,0"
                               Header="Authentication"
                               SelectedIndex="0">
-                        <ComboBoxItem Content="Password, prompt in terminal" />
+                        <ComboBoxItem Content="Password, saved in Windows Credential Manager" />
                         <ComboBoxItem Content="Private key file" />
                     </ComboBox>
+                    <PasswordBox x:Name="SshPasswordBox"
+                                 Margin="0,8,0,0"
+                                 Header="Password"
+                                 PlaceholderText="Saved securely for this profile" />
                     <TextBox x:Name="SshPrivateKeyPathBox"
                              Margin="0,8,0,0"
                              Header="Private key absolute path"

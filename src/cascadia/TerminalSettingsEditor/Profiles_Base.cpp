@@ -11,9 +11,12 @@
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Xaml::Controls;
 using namespace winrt::Windows::UI::Xaml::Navigation;
+using namespace winrt::Windows::Security::Credentials;
 
 namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
+    static constexpr std::wstring_view SshPasswordVaultResourceName{ L"WindowsTerminal.SshPassword" };
+
     static std::wstring _quoteSshArg(const std::wstring_view arg)
     {
         std::wstring escaped{ arg };
@@ -198,6 +201,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto port = SshPortBox().Text();
         const auto privateKeyPath = SshPrivateKeyPathBox().Text();
         const auto usePrivateKey = SshAuthModeBox().SelectedIndex() == 1;
+        const auto password = SshPasswordBox().Password();
 
         std::wstring target;
         if (!user.empty())
@@ -227,6 +231,30 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _Profile.Commandline(winrt::hstring{ commandline });
         _Profile.Name(winrt::hstring{ displayName });
         _Profile.TabTitle(winrt::hstring{ target });
+
+        try
+        {
+            PasswordVault vault;
+            const auto profileId = to_hstring(_Profile.Guid());
+            try
+            {
+                const auto existing = vault.FindAllByResource(winrt::hstring{ SshPasswordVaultResourceName });
+                for (const auto& credential : existing)
+                {
+                    if (credential.UserName() == profileId)
+                    {
+                        vault.Remove(credential);
+                    }
+                }
+            }
+            CATCH_LOG();
+
+            if (!usePrivateKey && !password.empty())
+            {
+                vault.Add(PasswordCredential{ winrt::hstring{ SshPasswordVaultResourceName }, profileId, password });
+            }
+        }
+        CATCH_LOG();
     }
 
     safe_void_coroutine Profiles_Base::StartingDirectory_Click(const IInspectable&, const RoutedEventArgs&)
