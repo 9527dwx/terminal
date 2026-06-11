@@ -12,22 +12,11 @@ using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Xaml::Controls;
 using namespace winrt::Windows::UI::Xaml::Navigation;
 using namespace winrt::Windows::Security::Credentials;
+using namespace winrt::Microsoft::Terminal::TerminalConnection;
 
 namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
     static constexpr std::wstring_view SshPasswordVaultResourceName{ L"WindowsTerminal.SshPassword" };
-
-    static std::wstring _quoteSshArg(const std::wstring_view arg)
-    {
-        std::wstring escaped{ arg };
-        size_t pos = 0;
-        while ((pos = escaped.find(L'"', pos)) != std::wstring::npos)
-        {
-            escaped.insert(pos, L"\\");
-            pos += 2;
-        }
-        return L"\"" + escaped + L"\"";
-    }
 
     Profiles_Base::Profiles_Base()
     {
@@ -206,29 +195,33 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         std::wstring target;
         if (!user.empty())
         {
-            target.append(user);
+            target.append(std::wstring_view{ user.c_str(), user.size() });
             target.push_back(L'@');
         }
-        target.append(host);
+        target.append(std::wstring_view{ host.c_str(), host.size() });
 
-        std::wstring commandline{ LR"("%SystemRoot%\System32\OpenSSH\ssh.exe")" };
+        std::wstring commandline{ L"ssh-native://" };
+        commandline.append(target);
+        commandline.append(L":");
+        if (port.empty())
+        {
+            commandline.append(L"22");
+        }
+        else
+        {
+            commandline.append(std::wstring_view{ port.c_str(), port.size() });
+        }
         if (usePrivateKey && !privateKeyPath.empty())
         {
-            commandline.append(L" -i ");
-            commandline.append(_quoteSshArg(privateKeyPath));
+            commandline.append(L"?identityFile=");
+            commandline.append(std::wstring_view{ privateKeyPath.c_str(), privateKeyPath.size() });
         }
-        if (!port.empty())
-        {
-            commandline.append(L" -p ");
-            commandline.append(port);
-        }
-        commandline.push_back(L' ');
-        commandline.append(_quoteSshArg(target));
 
         std::wstring displayName{ L"SSH " };
         displayName.append(target);
 
         _Profile.Commandline(winrt::hstring{ commandline });
+        _Profile.ConnectionType(SshConnection::ConnectionType());
         _Profile.Name(winrt::hstring{ displayName });
         _Profile.TabTitle(winrt::hstring{ target });
 

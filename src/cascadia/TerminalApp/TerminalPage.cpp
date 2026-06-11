@@ -37,7 +37,6 @@ using namespace winrt::Microsoft::Terminal::TerminalConnection;
 using namespace winrt::Microsoft::Terminal;
 using namespace winrt::Windows::ApplicationModel::DataTransfer;
 using namespace winrt::Windows::Foundation::Collections;
-using namespace winrt::Windows::Security::Credentials;
 using namespace winrt::Windows::System;
 using namespace winrt::Windows::UI;
 using namespace winrt::Windows::UI::Core;
@@ -216,58 +215,6 @@ namespace clipboard
 
 namespace winrt::TerminalApp::implementation
 {
-    static constexpr std::wstring_view SshPasswordVaultResourceName{ L"WindowsTerminal.SshPassword" };
-
-    static std::optional<winrt::hstring> _getSavedSshPassword(const winrt::guid& profileGuid)
-    {
-        try
-        {
-            PasswordVault vault;
-            const auto profileId = to_hstring(profileGuid);
-            const auto credentials = vault.FindAllByResource(winrt::hstring{ SshPasswordVaultResourceName });
-            for (const auto& credential : credentials)
-            {
-                if (credential.UserName() == profileId)
-                {
-                    credential.RetrievePassword();
-                    return credential.Password();
-                }
-            }
-        }
-        CATCH_LOG();
-
-        return std::nullopt;
-    }
-
-    static bool _containsInsensitiveAscii(const std::wstring_view str, const std::wstring_view needle)
-    {
-        if (needle.empty() || str.size() < needle.size())
-        {
-            return needle.empty();
-        }
-
-        for (size_t i = 0; i <= str.size() - needle.size(); ++i)
-        {
-            if (til::equals_insensitive_ascii(str.substr(i, needle.size()), needle))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static safe_void_coroutine _sendSavedSshPasswordAsync(const TerminalConnection::ITerminalConnection connection, winrt::hstring password)
-    {
-        co_await winrt::resume_background();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1800));
-        password = password + L"\r";
-        try
-        {
-            connection.WriteInput(winrt::array_view<const char16_t>{ password.data(), password.data() + password.size() });
-        }
-        CATCH_LOG();
-    }
-
     TerminalPage::TerminalPage(TerminalApp::WindowProperties properties, const TerminalApp::ContentManager& manager) :
         _tabs{ winrt::single_threaded_observable_vector<TerminalApp::Tab>() },
         _mruTabs{ winrt::single_threaded_observable_vector<TerminalApp::Tab>() },
@@ -1596,7 +1543,17 @@ namespace winrt::TerminalApp::implementation
         auto connectionType = profile.ConnectionType();
         Windows::Foundation::Collections::ValueSet valueSet;
 
-        if (connectionType == TerminalConnection::AzureConnection::ConnectionType() &&
+        if (connectionType == TerminalConnection::SshConnection::ConnectionType())
+        {
+            connection = TerminalConnection::SshConnection{};
+            valueSet = TerminalConnection::SshConnection::CreateSettings(settings.Commandline(),
+                                                                         settings.InitialRows(),
+                                                                         settings.InitialCols(),
+                                                                         winrt::guid(),
+                                                                         profile.Guid());
+        }
+
+        else if (connectionType == TerminalConnection::AzureConnection::ConnectionType() &&
             TerminalConnection::AzureConnection::IsAzureConnectionAvailable())
         {
             connection = TerminalConnection::AzureConnection{};
@@ -1666,15 +1623,6 @@ namespace winrt::TerminalApp::implementation
         }
 
         connection.Initialize(valueSet);
-
-        if (const auto password = _getSavedSshPassword(profile.Guid()))
-        {
-            const auto commandline = settings.Commandline();
-            if (_containsInsensitiveAscii(commandline, L"ssh.exe"))
-            {
-                _sendSavedSshPasswordAsync(connection, password.value());
-            }
-        }
 
         TraceLoggingWrite(
             g_hTerminalAppProvider,

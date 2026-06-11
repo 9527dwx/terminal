@@ -10,7 +10,8 @@
       "dependencies": [
         "jsoncpp",
         "cli11",
-        "cmark"
+        "cmark",
+        "libssh"
       ]
     }
   },

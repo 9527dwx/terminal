@@ -54,6 +54,7 @@
 
 #include <winrt/Microsoft.Terminal.Core.h>
 #include <winrt/Microsoft.Terminal.Control.h>
+#include <winrt/Microsoft.Terminal.TerminalConnection.h>
 #include <winrt/Microsoft.Terminal.Settings.Model.h>
 #include <winrt/Microsoft.Terminal.UI.h>
 

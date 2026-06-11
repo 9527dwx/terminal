@@ -1,0 +1,20 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+import "ITerminalConnection.idl";
+
+namespace Microsoft.Terminal.TerminalConnection
+{
+    [default_interface] runtimeclass SshConnection : ITerminalConnection
+    {
+        static Guid ConnectionType { get; };
+
+        SshConnection();
+
+        static Windows.Foundation.Collections.ValueSet CreateSettings(String commandline,
+                                                                      UInt32 rows,
+                                                                      UInt32 columns,
+                                                                      Guid guid,
+                                                                      Guid profileGuid);
+    };
+}
