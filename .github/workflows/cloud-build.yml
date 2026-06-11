@@ -39,8 +39,6 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
-          Import-Module .\tools\OpenConsole.psm1
-          Set-MsBuildDevEnvironment
           .\build\scripts\Generate-ThirdPartyNotices.ps1 -MarkdownNoticePath .\NOTICE.md -OutputPath .\src\cascadia\CascadiaPackage\NOTICE.html
           .\dep\nuget\nuget.exe restore .\OpenConsole.slnx
           .\dep\nuget\nuget.exe restore .\dep\nuget\packages.config
