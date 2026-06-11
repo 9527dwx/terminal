@@ -41,9 +41,30 @@ jobs:
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
           Import-Module .\tools\OpenConsole.psm1
           Set-MsBuildDevEnvironment
+          .\build\scripts\Generate-ThirdPartyNotices.ps1 -MarkdownNoticePath .\NOTICE.md -OutputPath .\src\cascadia\CascadiaPackage\NOTICE.html
           .\dep\nuget\nuget.exe restore .\OpenConsole.slnx
           .\dep\nuget\nuget.exe restore .\dep\nuget\packages.config
-          msbuild.exe .\OpenConsole.slnx /restore /m /p:Configuration=Debug /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /p:AppxBundle=false /bl:artifacts\build.binlog
+          msbuild.exe .\OpenConsole.slnx /restore /m /t:"Terminal\CascadiaPackage" /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true /p:AppxBundle=Never /bl:artifacts\build.binlog
+
+      - name: Package portable ZIP
+        shell: pwsh
+        run: |
+          $terminalPackage = Get-ChildItem -Recurse -Filter 'CascadiaPackage*.msix' | Select-Object -First 1
+          if (-not $terminalPackage) {
+            throw 'Could not find CascadiaPackage*.msix after build.'
+          }
+
+          $xamlAppx = Get-Item 'src\cascadia\CascadiaPackage\AppPackages\*\Dependencies\x64\Microsoft.UI.Xaml*.appx' | Select-Object -First 1
+          if (-not $xamlAppx) {
+            throw 'Could not find Microsoft.UI.Xaml dependency appx after build.'
+          }
+
+          $zip = & .\build\scripts\New-UnpackagedTerminalDistribution.ps1 `
+            -TerminalAppX $terminalPackage.FullName `
+            -XamlAppX $xamlAppx.FullName `
+            -Destination artifacts
+
+          $zip | Format-List FullName, Length
 
       - name: Upload build logs
         if: always()
@@ -53,11 +74,11 @@ jobs:
           path: artifacts
           if-no-files-found: warn
 
-      - name: Upload binaries
+      - name: Upload portable ZIP
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-terminal-debug-x64
+          name: windows-terminal-portable-x64
           path: |
-            bin\x64\Debug
-          if-no-files-found: warn
+            artifacts\Microsoft.WindowsTerminal_*_x64.zip
+          if-no-files-found: error
