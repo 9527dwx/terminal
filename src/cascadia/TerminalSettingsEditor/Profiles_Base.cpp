@@ -14,6 +14,18 @@ using namespace winrt::Windows::UI::Xaml::Navigation;
 
 namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
+    static std::wstring _quoteSshArg(const std::wstring_view arg)
+    {
+        std::wstring escaped{ arg };
+        size_t pos = 0;
+        while ((pos = escaped.find(L'"', pos)) != std::wstring::npos)
+        {
+            escaped.insert(pos, L"\\");
+            pos += 2;
+        }
+        return L"\"" + escaped + L"\"";
+    }
+
     Profiles_Base::Profiles_Base()
     {
         InitializeComponent();
@@ -138,6 +150,83 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         {
             _Profile.Commandline(path);
         }
+    }
+
+    safe_void_coroutine Profiles_Base::SshPrivateKeyBrowse_Click(const IInspectable&, const RoutedEventArgs&)
+    {
+        auto lifetime = get_strong();
+
+        static constexpr COMDLG_FILTERSPEC supportedFileTypes[] = {
+            { L"Private Key Files (*.*)", L"*.*" }
+        };
+
+        static constexpr winrt::guid clientGuidSshPrivateKeys{ 0x886E3BC9, 0x5845, 0x4509, { 0x93, 0xE5, 0xBA, 0x81, 0x02, 0xE6, 0xE2, 0x12 } };
+
+        const auto windowRoot = WindowRoot();
+        if (!windowRoot)
+        {
+            co_return;
+        }
+        const auto parentHwnd{ reinterpret_cast<HWND>(windowRoot.GetHostingWindow()) };
+        auto path = co_await OpenFilePicker(parentHwnd, [](auto&& dialog) {
+            THROW_IF_FAILED(dialog->SetClientGuid(clientGuidSshPrivateKeys));
+            try
+            {
+                auto folderShellItem{ winrt::capture<IShellItem>(&SHGetKnownFolderItem, FOLDERID_Profile, KF_FLAG_DEFAULT, nullptr) };
+                dialog->SetDefaultFolder(folderShellItem.get());
+            }
+            CATCH_LOG(); // non-fatal
+            THROW_IF_FAILED(dialog->SetFileTypes(ARRAYSIZE(supportedFileTypes), supportedFileTypes));
+            THROW_IF_FAILED(dialog->SetFileTypeIndex(1)); // the array is 1-indexed
+        });
+
+        if (!path.empty())
+        {
+            SshPrivateKeyPathBox().Text(path);
+        }
+    }
+
+    void Profiles_Base::ApplySshConfig_Click(const IInspectable&, const RoutedEventArgs&)
+    {
+        const auto host = SshHostBox().Text();
+        if (host.empty())
+        {
+            return;
+        }
+
+        const auto user = SshUserBox().Text();
+        const auto port = SshPortBox().Text();
+        const auto privateKeyPath = SshPrivateKeyPathBox().Text();
+        const auto usePrivateKey = SshAuthModeBox().SelectedIndex() == 1;
+
+        std::wstring target;
+        if (!user.empty())
+        {
+            target.append(user);
+            target.push_back(L'@');
+        }
+        target.append(host);
+
+        std::wstring commandline{ LR"("%SystemRoot%\System32\OpenSSH\ssh.exe")" };
+        if (usePrivateKey && !privateKeyPath.empty())
+        {
+            commandline.append(L" -i ");
+            commandline.append(_quoteSshArg(privateKeyPath));
+        }
+        if (!port.empty())
+        {
+            commandline.append(L" -p ");
+            commandline.append(port);
+        }
+        commandline.push_back(L' ');
+        commandline.append(_quoteSshArg(target));
+
+        std::wstring displayName{ L"SSH " };
+        displayName.append(target);
+
+        _Profile.Commandline(winrt::hstring{ commandline });
+        _Profile.Name(winrt::hstring{ displayName });
+        _Profile.TabTitle(winrt::hstring{ target });
     }
 
     safe_void_coroutine Profiles_Base::StartingDirectory_Click(const IInspectable&, const RoutedEventArgs&)

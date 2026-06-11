@@ -70,6 +70,56 @@
                 </StackPanel>
             </local:SettingContainer>
 
+            <!--  SSH Configuration  -->
+            <local:SettingContainer x:Name="SshConfiguration"
+                                    Header="SSH configuration"
+                                    HelpText="Builds this profile command line from SSH connection settings. Password authentication prompts inside the terminal when the tab opens."
+                                    Style="{StaticResource ExpanderSettingContainerStyle}"
+                                    Visibility="{x:Bind mtu:Converters.InvertedBooleanToVisibility(Profile.IsBaseLayer), Mode=OneWay}">
+                <StackPanel Orientation="Vertical">
+                    <TextBox x:Name="SshHostBox"
+                             Header="Host"
+                             IsSpellCheckEnabled="False"
+                             PlaceholderText="example.com or 192.168.1.10"
+                             Style="{StaticResource TextBoxSettingStyle}" />
+                    <TextBox x:Name="SshUserBox"
+                             Margin="0,8,0,0"
+                             Header="User name"
+                             IsSpellCheckEnabled="False"
+                             PlaceholderText="root"
+                             Style="{StaticResource TextBoxSettingStyle}" />
+                    <TextBox x:Name="SshPortBox"
+                             Margin="0,8,0,0"
+                             Header="Port"
+                             InputScope="Number"
+                             IsSpellCheckEnabled="False"
+                             PlaceholderText="22"
+                             Style="{StaticResource TextBoxSettingStyle}" />
+                    <ComboBox x:Name="SshAuthModeBox"
+                              Margin="0,8,0,0"
+                              Header="Authentication"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="Password, prompt in terminal" />
+                        <ComboBoxItem Content="Private key file" />
+                    </ComboBox>
+                    <TextBox x:Name="SshPrivateKeyPathBox"
+                             Margin="0,8,0,0"
+                             Header="Private key absolute path"
+                             IsSpellCheckEnabled="False"
+                             PlaceholderText="C:\Users\name\.ssh\id_rsa"
+                             Style="{StaticResource TextBoxSettingStyle}" />
+                    <StackPanel Margin="0,12,0,0"
+                                Orientation="Horizontal">
+                        <Button Content="Browse private key..."
+                                Click="SshPrivateKeyBrowse_Click"
+                                Style="{StaticResource BrowseButtonStyle}" />
+                        <Button Margin="12,0,0,0"
+                                Click="ApplySshConfig_Click"
+                                Content="Apply SSH configuration" />
+                    </StackPanel>
+                </StackPanel>
+            </local:SettingContainer>
+
             <!--  Starting Directory  -->
             <local:SettingContainer x:Name="StartingDirectory"
                                     x:Uid="Profile_StartingDirectory"
