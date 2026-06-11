@@ -6,7 +6,9 @@
 #include "SshConnection.g.cpp"
 
 #include <libssh/libssh.h>
+#include "../../types/inc/utils.hpp"
 
+using namespace ::Microsoft::Console;
 using namespace winrt;
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Security::Credentials;
