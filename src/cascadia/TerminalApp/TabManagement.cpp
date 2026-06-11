@@ -1150,11 +1150,27 @@ namespace winrt::TerminalApp::implementation
     void TerminalPage::_UpdateTabIndices()
     {
         const auto size = _tabs.Size();
+        std::vector<std::pair<winrt::hstring, uint32_t>> titleCounts;
         for (uint32_t i = 0; i < size; ++i)
         {
             auto tab{ _tabs.GetAt(i) };
             auto tabImpl{ winrt::get_self<Tab>(tab) };
             tabImpl->UpdateTabViewIndex(i, size);
+
+            const auto title = tab.Title();
+            uint32_t titleCount = 1;
+            auto titleEntry = std::find_if(titleCounts.begin(), titleCounts.end(), [&title](const auto& entry) {
+                return entry.first == title;
+            });
+            if (titleEntry == titleCounts.end())
+            {
+                titleCounts.emplace_back(title, titleCount);
+            }
+            else
+            {
+                titleCount = ++titleEntry->second;
+            }
+            tabImpl->UpdateDisplayTitle(til::hstring_format(FMT_COMPILE(L"{} {}"), title, titleCount));
         }
     }
 

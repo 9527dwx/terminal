@@ -50,7 +50,7 @@ Author(s):
     X(winrt::Microsoft::Terminal::Control::WarnAboutMultiLinePaste, WarnAboutMultiLinePaste, "warning.multiLinePaste", winrt::Microsoft::Terminal::Control::WarnAboutMultiLinePaste::Automatic)       \
     X(Model::LaunchPosition, InitialPosition, "initialPosition", nullptr, nullptr)                                                                                                                    \
     X(bool, CenterOnLaunch, "centerOnLaunch", false)                                                                                                                                                  \
-    X(Model::FirstWindowPreference, FirstWindowPreference, "firstWindowPreference", FirstWindowPreference::DefaultProfile)                                                                            \
+    X(Model::FirstWindowPreference, FirstWindowPreference, "firstWindowPreference", FirstWindowPreference::PersistedLayoutAndContent)                                                                \
     X(Model::LaunchMode, LaunchMode, "launchMode", LaunchMode::DefaultMode)                                                                                                                           \
     X(bool, SnapToGridOnResize, "snapToGridOnResize", true)                                                                                                                                           \
     X(bool, DebugFeaturesEnabled, "debugFeatures", debugFeaturesDefault)                                                                                                                              \

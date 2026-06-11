@@ -493,12 +493,25 @@ namespace winrt::TerminalApp::implementation
         ASSERT_UI_THREAD();
 
         const auto activeTitle = _GetActiveTitle();
+        UpdateDisplayTitle(activeTitle);
+
         // Bubble our current tab text to anyone who's listening for changes.
         Title(activeTitle);
+    }
 
-        // Update the control to reflect the changed title
-        _headerControl.Title(activeTitle);
-        Automation::AutomationProperties::SetName(TabViewItem(), activeTitle);
+    // Method Description:
+    // - Updates the title shown in the tab strip. This can differ from Title(),
+    //   for example when TerminalPage appends a duplicate-title ordinal.
+    // Arguments:
+    // - title: the display title for the tab strip.
+    // Return Value:
+    // - <none>
+    void Tab::UpdateDisplayTitle(winrt::hstring title)
+    {
+        ASSERT_UI_THREAD();
+
+        _headerControl.Title(title);
+        Automation::AutomationProperties::SetName(TabViewItem(), title);
         _UpdateToolTip();
     }
 

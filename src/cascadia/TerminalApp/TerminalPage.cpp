@@ -2087,6 +2087,7 @@ namespace winrt::TerminalApp::implementation
                 const auto propertyName = args.PropertyName();
                 if (propertyName == L"Title")
                 {
+                    page->_UpdateTabIndices();
                     page->_UpdateTitle(*tab);
                 }
                 else if (propertyName == L"Content")

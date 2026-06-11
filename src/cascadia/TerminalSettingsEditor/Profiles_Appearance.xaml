@@ -124,6 +124,22 @@
                 <TextBlock x:Uid="Profile_WindowHeader"
                            Style="{StaticResource TextBlockSubHeaderStyle}" />
 
+                <!--  Tab Color  -->
+                <local:SettingContainer x:Name="AppearanceTabColor"
+                                        x:Uid="Profile_TabColor"
+                                        ClearSettingValue="{x:Bind Profile.ClearTabColor}"
+                                        CurrentValue="{x:Bind Profile.TabColorPreview, Mode=OneWay}"
+                                        CurrentValueAccessibleName="{x:Bind Profile.TabColorPreview, Converter={StaticResource ColorToStringConverter}, Mode=OneWay}"
+                                        CurrentValueTemplate="{StaticResource ColorPreviewTemplate}"
+                                        HasSettingValue="{x:Bind Profile.HasTabColor, Mode=OneWay}"
+                                        SettingOverrideSource="{x:Bind Profile.TabColorOverrideSource, Mode=OneWay}"
+                                        Style="{StaticResource ExpanderSettingContainerStyleWithComplexPreview}">
+                    <local:NullableColorPicker x:Uid="Profile_TabColor_NullableColorPicker"
+                                               ColorSchemeVM="{x:Bind Profile.DefaultAppearance.CurrentColorScheme, Mode=OneWay}"
+                                               CurrentColor="{x:Bind Profile.TabColor, Mode=TwoWay}"
+                                               NullColorPreview="{x:Bind Profile.TabThemeColorPreview, Mode=OneWay}" />
+                </local:SettingContainer>
+
                 <!--  Padding  -->
                 <local:SettingContainer x:Name="Padding"
                                         x:Uid="Profile_Padding"
