@@ -42,7 +42,7 @@ jobs:
           .\build\scripts\Generate-ThirdPartyNotices.ps1 -MarkdownNoticePath .\NOTICE.md -OutputPath .\src\cascadia\CascadiaPackage\NOTICE.html
           .\dep\nuget\nuget.exe restore .\OpenConsole.slnx
           .\dep\nuget\nuget.exe restore .\dep\nuget\packages.config
-          msbuild.exe .\OpenConsole.slnx /restore /m /t:"Terminal\CascadiaPackage" /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true /p:AppxBundle=Never /bl:artifacts\build.binlog
+          msbuild.exe .\OpenConsole.slnx /restore /m /t:"Terminal\CascadiaPackage" /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Release /p:GenerateAppxPackageOnBuild=true /p:AppxBundle=Never /bl:artifacts\build.binlog
 
       - name: Package portable ZIP
         shell: pwsh
@@ -63,6 +63,7 @@ jobs:
             -Destination artifacts
 
           $zip | Format-List FullName, Length
+          Get-ChildItem artifacts -Recurse | Format-Table FullName, Length
 
       - name: Upload build logs
         if: always()
@@ -78,5 +79,5 @@ jobs:
         with:
           name: windows-terminal-portable-x64
           path: |
-            artifacts\Microsoft.WindowsTerminal_*_x64.zip
+            artifacts\*.zip
           if-no-files-found: error
