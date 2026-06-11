@@ -38,9 +38,12 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
+          New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
           Import-Module .\tools\OpenConsole.psm1
           Set-MsBuildDevEnvironment
-          Invoke-OpenConsoleBuild /m /p:Configuration=Debug /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /p:AppxBundle=false /bl:artifacts\build.binlog
+          .\dep\nuget\nuget.exe restore .\OpenConsole.slnx
+          .\dep\nuget\nuget.exe restore .\dep\nuget\packages.config
+          msbuild.exe .\OpenConsole.slnx /restore /m /p:Configuration=Debug /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /p:AppxBundle=false /bl:artifacts\build.binlog
 
       - name: Upload build logs
         if: always()
