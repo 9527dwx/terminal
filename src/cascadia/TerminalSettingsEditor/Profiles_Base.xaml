@@ -124,6 +124,59 @@
                 </StackPanel>
             </local:SettingContainer>
 
+            <!--  RS232 Configuration  -->
+            <local:SettingContainer x:Name="SerialConfiguration"
+                                    Header="RS232 serial configuration"
+                                    HelpText="Builds this profile command line from serial port settings."
+                                    Style="{StaticResource ExpanderSettingContainerStyle}"
+                                    Visibility="{x:Bind mtu:Converters.InvertedBooleanToVisibility(Profile.IsBaseLayer), Mode=OneWay}">
+                <StackPanel Orientation="Vertical">
+                    <ComboBox x:Name="SerialPortBox"
+                              Header="Serial device" />
+                    <TextBox x:Name="SerialBaudRateBox"
+                             Margin="0,8,0,0"
+                             Header="Baud rate"
+                             InputScope="Number"
+                             IsSpellCheckEnabled="False"
+                             PlaceholderText="115200"
+                             Style="{StaticResource TextBoxSettingStyle}" />
+                    <TextBox x:Name="SerialDataBitsBox"
+                             Margin="0,8,0,0"
+                             Header="Data bits"
+                             InputScope="Number"
+                             IsSpellCheckEnabled="False"
+                             PlaceholderText="8"
+                             Style="{StaticResource TextBoxSettingStyle}" />
+                    <ComboBox x:Name="SerialStopBitsBox"
+                              Margin="0,8,0,0"
+                              Header="Stop bits"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="1" />
+                    </ComboBox>
+                    <ComboBox x:Name="SerialParityBox"
+                              Margin="0,8,0,0"
+                              Header="Parity"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="None" />
+                    </ComboBox>
+                    <ComboBox x:Name="SerialFlowControlBox"
+                              Margin="0,8,0,0"
+                              Header="Flow control"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="None" />
+                    </ComboBox>
+                    <StackPanel Margin="0,12,0,0"
+                                Orientation="Horizontal">
+                        <Button Content="Scan serial devices"
+                                Click="ScanSerialDevices_Click"
+                                Style="{StaticResource BrowseButtonStyle}" />
+                        <Button Margin="12,0,0,0"
+                                Click="ApplySerialConfig_Click"
+                                Content="Apply RS232 configuration" />
+                    </StackPanel>
+                </StackPanel>
+            </local:SettingContainer>
+
             <!--  Starting Directory  -->
             <local:SettingContainer x:Name="StartingDirectory"
                                     x:Uid="Profile_StartingDirectory"

@@ -18,6 +18,21 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
     static constexpr std::wstring_view SshPasswordVaultResourceName{ L"WindowsTerminal.SshPassword" };
 
+    std::vector<hstring> _scanSerialPorts()
+    {
+        std::vector<hstring> ports;
+        wchar_t target[256]{};
+        for (uint32_t i = 1; i <= 256; ++i)
+        {
+            const auto port = til::hstring_format(FMT_COMPILE(L"COM{}"), i);
+            if (QueryDosDeviceW(port.c_str(), target, ARRAYSIZE(target)) != 0)
+            {
+                ports.emplace_back(port);
+            }
+        }
+        return ports;
+    }
+
     Profiles_Base::Profiles_Base()
     {
         InitializeComponent();
@@ -248,6 +263,46 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
         }
         CATCH_LOG();
+    }
+
+    void Profiles_Base::ScanSerialDevices_Click(const IInspectable&, const RoutedEventArgs&)
+    {
+        const auto ports = _scanSerialPorts();
+        SerialPortBox().Items().Clear();
+        for (const auto& port : ports)
+        {
+            SerialPortBox().Items().Append(box_value(port));
+        }
+
+        if (!ports.empty())
+        {
+            SerialPortBox().SelectedIndex(0);
+        }
+    }
+
+    void Profiles_Base::ApplySerialConfig_Click(const IInspectable&, const RoutedEventArgs&)
+    {
+        const auto port = unbox_value_or<hstring>(SerialPortBox().SelectedItem(), L"");
+        if (port.empty())
+        {
+            return;
+        }
+
+        const auto baudRate = SerialBaudRateBox().Text().empty() ? hstring{ L"115200" } : SerialBaudRateBox().Text();
+        const auto dataBits = SerialDataBitsBox().Text().empty() ? hstring{ L"8" } : SerialDataBitsBox().Text();
+
+        std::wstring commandline{ L"serial-native://" };
+        commandline.append(std::wstring_view{ port.c_str(), port.size() });
+        commandline.append(L"?baudRate=");
+        commandline.append(std::wstring_view{ baudRate.c_str(), baudRate.size() });
+        commandline.append(L"&dataBits=");
+        commandline.append(std::wstring_view{ dataBits.c_str(), dataBits.size() });
+        commandline.append(L"&stopBits=0&parity=0&flowControl=0");
+
+        _Profile.Commandline(winrt::hstring{ commandline });
+        _Profile.ConnectionType(SerialConnection::ConnectionType());
+        _Profile.Name(til::hstring_format(FMT_COMPILE(L"RS232 {}"), port));
+        _Profile.TabTitle(port);
     }
 
     safe_void_coroutine Profiles_Base::StartingDirectory_Click(const IInspectable&, const RoutedEventArgs&)

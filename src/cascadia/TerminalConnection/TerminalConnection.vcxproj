@@ -36,6 +36,9 @@
     <ClInclude Include="SshConnection.h">
       <DependentUpon>SshConnection.idl</DependentUpon>
     </ClInclude>
+    <ClInclude Include="SerialConnection.h">
+      <DependentUpon>SerialConnection.idl</DependentUpon>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CTerminalHandoff.cpp" />
@@ -58,6 +61,9 @@
     <ClCompile Include="SshConnection.cpp">
       <DependentUpon>SshConnection.idl</DependentUpon>
     </ClCompile>
+    <ClCompile Include="SerialConnection.cpp">
+      <DependentUpon>SerialConnection.idl</DependentUpon>
+    </ClCompile>
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +73,7 @@
     <Midl Include="EchoConnection.idl" />
     <Midl Include="AzureConnection.idl" />
     <Midl Include="SshConnection.idl" />
+    <Midl Include="SerialConnection.idl" />
   </ItemGroup>
   <ItemGroup>
     <PRIResource Include="Resources\en-US\Resources.resw">

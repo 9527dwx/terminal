@@ -20,6 +20,7 @@
     <ClCompile Include="init.cpp" />
     <ClCompile Include="CTerminalHandoff.cpp" />
     <ClCompile Include="SshConnection.cpp" />
+    <ClCompile Include="SerialConnection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -29,6 +30,7 @@
     <ClInclude Include="CTerminalHandoff.h" />
     <ClInclude Include="BaseTerminalConnection.h" />
     <ClInclude Include="SshConnection.h" />
+    <ClInclude Include="SerialConnection.h" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="ITerminalConnection.idl" />
@@ -37,6 +39,7 @@
     <Midl Include="ConptyConnection.idl" />
     <Midl Include="ConnectionInformation.idl" />
     <Midl Include="SshConnection.idl" />
+    <Midl Include="SerialConnection.idl" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="$(SolutionDir)tools\ConsoleTypes.natvis" />

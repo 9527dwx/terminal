@@ -1553,6 +1553,16 @@ namespace winrt::TerminalApp::implementation
                                                                          profile.Guid());
         }
 
+        else if (connectionType == TerminalConnection::SerialConnection::ConnectionType())
+        {
+            connection = TerminalConnection::SerialConnection{};
+            valueSet = TerminalConnection::SerialConnection::CreateSettings(settings.Commandline(),
+                                                                            settings.InitialRows(),
+                                                                            settings.InitialCols(),
+                                                                            winrt::guid(),
+                                                                            profile.Guid());
+        }
+
         else if (connectionType == TerminalConnection::AzureConnection::ConnectionType() &&
             TerminalConnection::AzureConnection::IsAzureConnectionAvailable())
         {

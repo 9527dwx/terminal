@@ -27,6 +27,24 @@ namespace winrt
 
 #define ASSERT_UI_THREAD() assert(TabViewItem().Dispatcher().HasThreadAccess())
 
+namespace
+{
+    std::vector<winrt::hstring> _scanSerialPorts()
+    {
+        std::vector<winrt::hstring> ports;
+        wchar_t target[256]{};
+        for (uint32_t i = 1; i <= 256; ++i)
+        {
+            const auto port = til::hstring_format(FMT_COMPILE(L"COM{}"), i);
+            if (QueryDosDeviceW(port.c_str(), target, ARRAYSIZE(target)) != 0)
+            {
+                ports.emplace_back(port);
+            }
+        }
+        return ports;
+    }
+}
+
 namespace winrt::TerminalApp::implementation
 {
     Tab::Tab(std::shared_ptr<Pane> rootPane)
@@ -1790,6 +1808,12 @@ namespace winrt::TerminalApp::implementation
             Automation::AutomationProperties::SetHelpText(_restartConnectionMenuItem, restartConnectionToolTip);
         }
 
+        Controls::MenuFlyoutSubItem serialPortSubMenu;
+        {
+            serialPortSubMenu.Text(L"Change serial device");
+            serialPortSubMenu.Visibility(WUX::Visibility::Collapsed);
+        }
+
         // Build the menu
         Controls::MenuFlyout contextMenuFlyout;
         Controls::MenuFlyoutSeparator menuSeparator;
@@ -1801,6 +1825,7 @@ namespace winrt::TerminalApp::implementation
         contextMenuFlyout.Items().Append(_exportTabMenuItem);
         contextMenuFlyout.Items().Append(_findMenuItem);
         contextMenuFlyout.Items().Append(_restartConnectionMenuItem);
+        contextMenuFlyout.Items().Append(serialPortSubMenu);
         contextMenuFlyout.Items().Append(menuSeparator);
 
         auto closeSubMenu = _AppendCloseMenuItems(contextMenuFlyout);
@@ -1822,6 +1847,46 @@ namespace winrt::TerminalApp::implementation
                     (terminalControl == nullptr || !terminalControl.SearchBoxEditInFocus()))
                 {
                     tab->RequestFocusActiveControl.raise();
+                }
+            }
+        });
+
+        contextMenuFlyout.Opening([weakThis, serialPortSubMenu](auto&&, auto&&) {
+            serialPortSubMenu.Items().Clear();
+            serialPortSubMenu.Visibility(WUX::Visibility::Collapsed);
+
+            if (const auto tab{ weakThis.get() })
+            {
+                if (const auto control{ tab->GetActiveTerminalControl() })
+                {
+                    if (const auto connection{ control.Connection() })
+                    {
+                        if (const auto serialConnection{ connection.try_as<SerialConnection>() })
+                        {
+                            serialPortSubMenu.Visibility(WUX::Visibility::Visible);
+                            for (const auto& port : _scanSerialPorts())
+                            {
+                                Controls::MenuFlyoutItem portItem;
+                                portItem.Text(port);
+                                portItem.Click([weakThis, serialConnection, port](auto&&, auto&&) {
+                                    serialConnection.SwitchPort(port);
+                                    if (const auto tab{ weakThis.get() })
+                                    {
+                                        tab->SetTabText(port);
+                                    }
+                                });
+                                serialPortSubMenu.Items().Append(portItem);
+                            }
+
+                            if (serialPortSubMenu.Items().Size() == 0)
+                            {
+                                Controls::MenuFlyoutItem noPortsItem;
+                                noPortsItem.Text(L"No serial devices found");
+                                noPortsItem.IsEnabled(false);
+                                serialPortSubMenu.Items().Append(noPortsItem);
+                            }
+                        }
+                    }
                 }
             }
         });

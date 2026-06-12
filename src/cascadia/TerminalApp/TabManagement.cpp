@@ -1149,6 +1149,10 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     void TerminalPage::_UpdateTabIndices()
     {
+        static constexpr std::wstring_view circledNumbers[] = {
+            L"\x2460", L"\x2461", L"\x2462", L"\x2463", L"\x2464", L"\x2465", L"\x2466", L"\x2467", L"\x2468", L"\x2469"
+        };
+
         const auto size = _tabs.Size();
         std::vector<std::pair<winrt::hstring, uint32_t>> titleCounts;
         for (uint32_t i = 0; i < size; ++i)
@@ -1170,7 +1174,10 @@ namespace winrt::TerminalApp::implementation
             {
                 titleCount = ++titleEntry->second;
             }
-            tabImpl->UpdateDisplayTitle(til::hstring_format(FMT_COMPILE(L"{} {}"), title, titleCount));
+            const auto ordinal = titleCount <= std::size(circledNumbers) ?
+                                     winrt::hstring{ circledNumbers[titleCount - 1] } :
+                                     til::hstring_format(FMT_COMPILE(L"({})"), titleCount);
+            tabImpl->UpdateDisplayTitle(til::hstring_format(FMT_COMPILE(L"{} {}"), title, ordinal));
         }
     }
 
