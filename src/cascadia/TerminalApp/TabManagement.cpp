@@ -261,16 +261,190 @@ namespace winrt::TerminalApp::implementation
                                 (_tabs.Size() > 1) ||
                                 _settings.GlobalSettings().AlwaysShowTabs());
 
+        const auto isVertical = _IsVerticalTabRow();
+        const auto autoHide = _IsAutoHideTabRow();
+
         if (_tabView)
         {
             // collapse/show the tabs themselves
-            _tabView.Visibility(isVisible ? Visibility::Visible : Visibility::Collapsed);
+            _tabView.Visibility(isVisible && !isVertical ? Visibility::Visible : Visibility::Collapsed);
         }
         if (_tabRow)
         {
             // collapse/show the row that the tabs are in.
             // NaN is the special value XAML uses for "Auto" sizing.
-            _tabRow.Height(isVisible ? NAN : 0);
+            _tabRow.Visibility(isVisible && !isVertical ? Visibility::Visible : Visibility::Collapsed);
+            if (isVisible && !isVertical)
+            {
+                _tabRow.Height(autoHide && !_tabRowExpanded ? 6 : NAN);
+                _tabRow.Opacity(autoHide && !_tabRowExpanded ? 0.08 : 1.0);
+            }
+            else
+            {
+                _tabRow.Height(0);
+            }
+        }
+        if (VerticalTabRail())
+        {
+            VerticalTabRail().Visibility(isVisible && isVertical ? Visibility::Visible : Visibility::Collapsed);
+            if (isVisible && isVertical)
+            {
+                _SetTabRowExpanded(!autoHide || _tabRowExpanded);
+            }
+        }
+    }
+
+    bool TerminalPage::_IsVerticalTabRow() const
+    {
+        if (!_settings)
+        {
+            return false;
+        }
+
+        const auto placement = _settings.GlobalSettings().TabRowPlacement();
+        const std::wstring_view value{ placement.c_str(), placement.size() };
+        return value == L"left" || value == L"vertical";
+    }
+
+    bool TerminalPage::_IsAutoHideTabRow() const
+    {
+        return _settings && _settings.GlobalSettings().AutoHideTabRow();
+    }
+
+    void TerminalPage::_SetTabRowExpanded(const bool expanded)
+    {
+        _tabRowExpanded = expanded;
+        if (_IsVerticalTabRow())
+        {
+            const auto width = expanded ? 220.0 : 8.0;
+            VerticalTabRail().Width(width);
+            VerticalTabRail().Opacity(expanded ? 0.92 : 0.35);
+            const auto visibility = expanded ? Visibility::Visible : Visibility::Collapsed;
+            VerticalTabPanel().Visibility(visibility);
+            VerticalNewTabButton().Visibility(visibility);
+            VerticalTabPlacementButton().Visibility(visibility);
+            VerticalTabAutoHideButton().Visibility(visibility);
+        }
+        else if (_tabRow)
+        {
+            _tabRow.Height(_IsAutoHideTabRow() && !expanded ? 6 : NAN);
+            _tabRow.Opacity(_IsAutoHideTabRow() && !expanded ? 0.08 : 1.0);
+        }
+    }
+
+    void TerminalPage::_ToggleTabRowPlacement(const IInspectable&, const RoutedEventArgs&)
+    {
+        if (!_settings)
+        {
+            return;
+        }
+
+        _settings.GlobalSettings().TabRowPlacement(_IsVerticalTabRow() ? L"top" : L"left");
+        _tabRowExpanded = true;
+        _ApplyTabRowLayoutSettings();
+    }
+
+    void TerminalPage::_ToggleAutoHideTabRow(const IInspectable&, const RoutedEventArgs&)
+    {
+        if (!_settings)
+        {
+            return;
+        }
+
+        _settings.GlobalSettings().AutoHideTabRow(!_settings.GlobalSettings().AutoHideTabRow());
+        _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
+        _ApplyTabRowLayoutSettings();
+    }
+
+    void TerminalPage::_TabRowPointerEntered(const IInspectable&, const Input::PointerRoutedEventArgs&)
+    {
+        if (_IsAutoHideTabRow())
+        {
+            _SetTabRowExpanded(true);
+        }
+    }
+
+    void TerminalPage::_TabRowPointerExited(const IInspectable&, const Input::PointerRoutedEventArgs&)
+    {
+        if (_IsAutoHideTabRow())
+        {
+            _SetTabRowExpanded(false);
+        }
+    }
+
+    void TerminalPage::_ApplyTabRowLayoutSettings()
+    {
+        Media::SolidColorBrush borderBrush{ Windows::UI::Colors::White() };
+        try
+        {
+            const auto colorText = _settings.GlobalSettings().TabBorderColor();
+            const auto colorString = til::u16u8(std::wstring_view{ colorText.c_str(), colorText.size() });
+            borderBrush.Color(::Microsoft::Console::Utils::ColorFromHexString(colorString));
+        }
+        CATCH_LOG();
+
+        const auto applyBorderResources = [&](auto resources) {
+            resources.Insert(box_value(L"TerminalTabBorderBrush"), borderBrush);
+            resources.Insert(box_value(L"TabViewItemHeaderBorderBrush"), borderBrush);
+            resources.Insert(box_value(L"TabViewItemHeaderBorderBrushSelected"), borderBrush);
+            resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPointerOver"), borderBrush);
+            resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPressed"), borderBrush);
+        };
+
+        applyBorderResources(Application::Current().Resources());
+        if (_tabView)
+        {
+            applyBorderResources(_tabView.Resources());
+        }
+        for (const auto& tab : _tabs)
+        {
+            tab.TabViewItem().BorderBrush(borderBrush);
+            tab.TabViewItem().BorderThickness({ 1, 1, 1, 1 });
+            applyBorderResources(tab.TabViewItem().Resources());
+        }
+
+        _UpdateVerticalTabRail();
+        _UpdateTabView();
+    }
+
+    void TerminalPage::_UpdateVerticalTabRail()
+    {
+        if (!VerticalTabPanel())
+        {
+            return;
+        }
+
+        VerticalTabPanel().Children().Clear();
+        const auto focusedIndex = _GetFocusedTabIndex();
+        for (uint32_t i = 0; i < _tabs.Size(); ++i)
+        {
+            const auto tab = _tabs.GetAt(i);
+            WUX::Controls::Button button;
+            button.HorizontalAlignment(HorizontalAlignment::Stretch);
+            button.HorizontalContentAlignment(HorizontalAlignment::Left);
+            button.Padding({ 10, 6, 10, 6 });
+            button.Content(box_value(tab.Title()));
+            button.BorderThickness({ 1, 1, 1, 1 });
+            if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
+            {
+                button.BorderBrush(border.as<Media::Brush>());
+            }
+            if (focusedIndex && *focusedIndex == i)
+            {
+                button.FontWeight(FontWeights::Bold());
+                button.Opacity(1.0);
+            }
+            else
+            {
+                button.Opacity(0.78);
+            }
+            button.Click([weakThis{ get_weak() }, i](auto&&, auto&&) {
+                if (const auto page{ weakThis.get() })
+                {
+                    page->_SelectTab(i);
+                }
+            });
+            VerticalTabPanel().Children().Append(button);
         }
     }
 
@@ -1095,6 +1269,7 @@ namespace winrt::TerminalApp::implementation
             }
 
             tab.TabViewItem().StartBringIntoView();
+            _UpdateVerticalTabRail();
 
             // Raise an event that our title changed
             TitleChanged.raise(*this, nullptr);
@@ -1179,6 +1354,7 @@ namespace winrt::TerminalApp::implementation
                                      til::hstring_format(FMT_COMPILE(L"({})"), titleCount);
             tabImpl->UpdateDisplayTitle(til::hstring_format(FMT_COMPILE(L"{} {}"), title, ordinal));
         }
+        _UpdateVerticalTabRail();
     }
 
     // Method Description:

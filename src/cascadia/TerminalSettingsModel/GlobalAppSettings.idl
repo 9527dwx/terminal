@@ -71,6 +71,9 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_SETTING(ConfirmOnClose, ConfirmOnClose);
         INHERITABLE_SETTING(String, Language);
         INHERITABLE_SETTING(Microsoft.UI.Xaml.Controls.TabViewWidthMode, TabWidthMode);
+        INHERITABLE_SETTING(String, TabRowPlacement);
+        INHERITABLE_SETTING(Boolean, AutoHideTabRow);
+        INHERITABLE_SETTING(String, TabBorderColor);
         INHERITABLE_SETTING(Boolean, UseAcrylicInTabRow);
         INHERITABLE_SETTING(Boolean, ShowTabsInTitlebar);
         INHERITABLE_SETTING(String, WordDelimiters);

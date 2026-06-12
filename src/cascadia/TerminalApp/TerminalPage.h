@@ -237,6 +237,8 @@ namespace winrt::TerminalApp::implementation
         TerminalApp::TabRowControl _tabRow{ nullptr };
         Windows::UI::Xaml::Controls::Grid _tabContent{ nullptr };
         Microsoft::UI::Xaml::Controls::SplitButton _newTabButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::SplitButton _verticalNewTabButton{ nullptr };
+        bool _tabRowExpanded{ true };
         winrt::TerminalApp::ColorPickupFlyout _tabColorPicker{ nullptr };
 
         Microsoft::Terminal::Settings::Model::CascadiaSettings _settings{ nullptr };
@@ -353,6 +355,15 @@ namespace winrt::TerminalApp::implementation
         void _UpdateTabIcon(Tab& tab);
         void _UpdateTabView();
         void _UpdateTabWidthMode();
+        void _ApplyTabRowLayoutSettings();
+        void _UpdateVerticalTabRail();
+        bool _IsVerticalTabRow() const;
+        bool _IsAutoHideTabRow() const;
+        void _SetTabRowExpanded(bool expanded);
+        void _ToggleTabRowPlacement(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& args);
+        void _ToggleAutoHideTabRow(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& args);
+        void _TabRowPointerEntered(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs& args);
+        void _TabRowPointerExited(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs& args);
         void _SetBackgroundImage(const winrt::Microsoft::Terminal::Settings::Model::IAppearanceConfig& newAppearance);
 
         void _DuplicateFocusedTab();

@@ -47,13 +47,46 @@
 
         <mux:TabView.TabStripFooter>
             <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
                 <!--  Remove this border after WinUI 2.8  -->
                 <Border Height="1"
+                        Grid.ColumnSpan="3"
                         VerticalAlignment="Bottom"
                         Background="{ThemeResource CardStrokeColorDefaultBrush}" />
 
+                <Button x:Name="TabPlacementButton"
+                        Width="28"
+                        Height="24"
+                        Margin="0,4"
+                        Padding="0"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Stretch"
+                        BorderThickness="0"
+                        Content="&#xE8A9;"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        FontSize="12" />
+
+                <Button x:Name="TabAutoHideButton"
+                        Grid.Column="1"
+                        Width="28"
+                        Height="24"
+                        Margin="0,4"
+                        Padding="0"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Stretch"
+                        BorderThickness="0"
+                        Content="&#xE73F;"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        FontSize="12" />
+
                 <mux:SplitButton x:Name="NewTabButton"
                                  x:Uid="NewTabSplitButton"
+                                 Grid.Column="2"
                                  Height="24"
                                  Margin="0,4"
                                  Padding="0"

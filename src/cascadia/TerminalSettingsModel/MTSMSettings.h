@@ -42,6 +42,9 @@ Author(s):
     X(Model::ThemePair, Theme, "theme")                                                                                                                                                               \
     X(hstring, Language, "language")                                                                                                                                                                  \
     X(winrt::Microsoft::UI::Xaml::Controls::TabViewWidthMode, TabWidthMode, "tabWidthMode", winrt::Microsoft::UI::Xaml::Controls::TabViewWidthMode::Equal)                                            \
+    X(hstring, TabRowPlacement, "tabRowPlacement", L"top")                                                                                                                                           \
+    X(bool, AutoHideTabRow, "autoHideTabRow", false)                                                                                                                                                 \
+    X(hstring, TabBorderColor, "tabBorderColor", L"#FFFFFF")                                                                                                                                         \
     X(bool, UseAcrylicInTabRow, "useAcrylicInTabRow", false)                                                                                                                                          \
     X(bool, ShowTabsInTitlebar, "showTabsInTitlebar", true)                                                                                                                                           \
     X(bool, InputServiceWarning, "warning.inputService", true)                                                                                                                                        \

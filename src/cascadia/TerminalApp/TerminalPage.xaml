@@ -65,6 +65,54 @@
             </Grid.Background>
         </Grid>
 
+        <Border x:Name="VerticalTabRail"
+                Grid.Row="2"
+                Width="220"
+                Padding="6"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Stretch"
+                Background="{ThemeResource TabViewBackground}"
+                Opacity="0.92"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="VerticalTabPanel" />
+                </ScrollViewer>
+                <StackPanel Grid.Row="1"
+                            Margin="0,8,0,0"
+                            Orientation="Horizontal">
+                    <mux:SplitButton x:Name="VerticalNewTabButton"
+                                     Width="88"
+                                     Height="28"
+                                     Padding="0"
+                                     Content="&#xE710;"
+                                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                     FontSize="12" />
+                    <Button x:Name="VerticalTabPlacementButton"
+                            Width="28"
+                            Height="28"
+                            Margin="6,0,0,0"
+                            Padding="0"
+                            Content="&#xE8A9;"
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="12" />
+                    <Button x:Name="VerticalTabAutoHideButton"
+                            Width="28"
+                            Height="28"
+                            Margin="6,0,0,0"
+                            Padding="0"
+                            Content="&#xE73F;"
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="12" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!--
             GH#12775 et. al: After switching to ControlsV2, it seems that
             delay-loading a dialog causes the ContentDialog to be assigned a

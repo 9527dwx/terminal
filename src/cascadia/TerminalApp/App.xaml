@@ -47,7 +47,19 @@
                     <!--  Suppress top padding  -->
                     <Thickness x:Key="TabViewHeaderPadding">0,0,0,0</Thickness>
 
-                    <Thickness x:Key="TabViewItemBorderThickness">1,1,1,0</Thickness>
+                    <Thickness x:Key="TabViewItemBorderThickness">1,1,1,1</Thickness>
+                    <CornerRadius x:Key="TabViewItemCornerRadius">4,4,4,4</CornerRadius>
+                    <CornerRadius x:Key="TabViewItemHeaderCornerRadius">4,4,4,4</CornerRadius>
+                    <SolidColorBrush x:Key="TerminalTabBorderBrush"
+                                     Color="White" />
+                    <StaticResource x:Key="TabViewItemHeaderBorderBrush"
+                                    ResourceKey="TerminalTabBorderBrush" />
+                    <StaticResource x:Key="TabViewItemHeaderBorderBrushSelected"
+                                    ResourceKey="TerminalTabBorderBrush" />
+                    <StaticResource x:Key="TabViewItemHeaderBorderBrushPointerOver"
+                                    ResourceKey="TerminalTabBorderBrush" />
+                    <StaticResource x:Key="TabViewItemHeaderBorderBrushPressed"
+                                    ResourceKey="TerminalTabBorderBrush" />
 
                     <!--
                         Disable the EntranceThemeTransition for our muxc:TabView, which would slowly slide in the tabs

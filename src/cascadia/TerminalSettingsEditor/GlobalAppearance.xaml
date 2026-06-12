@@ -106,6 +106,30 @@
                       Style="{StaticResource ComboBoxSettingStyle}" />
         </local:SettingContainer>
 
+        <local:SettingContainer x:Name="TabRowPlacement"
+                                Header="Tab row placement"
+                                HelpText="Use top for the normal horizontal tab row, or left for the vertical tab rail.">
+            <TextBox IsSpellCheckEnabled="False"
+                     PlaceholderText="top or left"
+                     Style="{StaticResource TextBoxSettingStyle}"
+                     Text="{x:Bind ViewModel.TabRowPlacement, Mode=TwoWay}" />
+        </local:SettingContainer>
+
+        <local:SettingContainer x:Name="AutoHideTabRow"
+                                Header="Auto-hide tab row">
+            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoHideTabRow, Mode=TwoWay}"
+                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+        </local:SettingContainer>
+
+        <local:SettingContainer x:Name="TabBorderColor"
+                                Header="Tab border color"
+                                HelpText="Hex color used for the outline around each tab.">
+            <TextBox IsSpellCheckEnabled="False"
+                     PlaceholderText="#FFFFFF"
+                     Style="{StaticResource TextBoxSettingStyle}"
+                     Text="{x:Bind ViewModel.TabBorderColor, Mode=TwoWay}" />
+        </local:SettingContainer>
+
         <!--  Disable Animations  -->
         <!--  NOTE: the UID is "DisablePaneAnimationsReversed" not "DisablePaneAnimations". See GH#9124 for more details.  -->
         <local:SettingContainer x:Name="DisableAnimations"

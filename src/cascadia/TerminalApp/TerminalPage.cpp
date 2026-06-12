@@ -288,6 +288,11 @@ namespace winrt::TerminalApp::implementation
             _RefreshUIForSettingsReload();
         }
 
+        if (_tabRow)
+        {
+            _ApplyTabRowLayoutSettings();
+        }
+
         // Upon settings update we reload the system settings for scrolling as well.
         // TODO: consider reloading this value periodically.
         _systemRowsToScroll = _ReadSystemRowsToScroll();
@@ -334,8 +339,24 @@ namespace winrt::TerminalApp::implementation
 
         auto tabRowImpl = winrt::get_self<implementation::TabRowControl>(_tabRow);
         _newTabButton = tabRowImpl->NewTabButton();
+        tabRowImpl->TabPlacementButton().Click({ get_weak(), &TerminalPage::_ToggleTabRowPlacement });
+        tabRowImpl->TabAutoHideButton().Click({ get_weak(), &TerminalPage::_ToggleAutoHideTabRow });
 
-        if (_settings.GlobalSettings().ShowTabsInTitlebar())
+        _verticalNewTabButton = VerticalNewTabButton();
+        _verticalNewTabButton.Click([weakThis{ get_weak() }](auto&&, auto&&) {
+            if (auto page{ weakThis.get() })
+            {
+                page->_OpenNewTerminalViaDropdown(NewTerminalArgs());
+            }
+        });
+        VerticalTabPlacementButton().Click({ get_weak(), &TerminalPage::_ToggleTabRowPlacement });
+        VerticalTabAutoHideButton().Click({ get_weak(), &TerminalPage::_ToggleAutoHideTabRow });
+        _tabRow.PointerEntered({ get_weak(), &TerminalPage::_TabRowPointerEntered });
+        _tabRow.PointerExited({ get_weak(), &TerminalPage::_TabRowPointerExited });
+        VerticalTabRail().PointerEntered({ get_weak(), &TerminalPage::_TabRowPointerEntered });
+        VerticalTabRail().PointerExited({ get_weak(), &TerminalPage::_TabRowPointerExited });
+
+        if (_settings.GlobalSettings().ShowTabsInTitlebar() && !_IsVerticalTabRow())
         {
             // Remove the TabView from the page. We'll hang on to it, we need to
             // put it in the titlebar.
@@ -419,8 +440,10 @@ namespace winrt::TerminalApp::implementation
         _tabView.TabDroppedOutside({ this, &TerminalPage::_onTabDroppedOutside });
 
         _CreateNewTabFlyout();
+        _verticalNewTabButton.Flyout(_newTabButton.Flyout());
 
         _UpdateTabWidthMode();
+        _ApplyTabRowLayoutSettings();
 
         // Settings AllowDependentAnimations will affect whether animations are
         // enabled application-wide, so we don't need to check it each time we
