@@ -18,6 +18,18 @@ namespace
     static constexpr std::wstring_view SshPasswordVaultResourceName{ L"WindowsTerminal.SshPassword" };
     static constexpr winrt::guid SshConnectionType{ 0x6b4e5e0f, 0x60f2, 0x44d2, { 0xa8, 0x74, 0x1d, 0x0b, 0x59, 0xe7, 0xa9, 0x55 } };
 
+    int _ensureLibSshInitialized()
+    {
+        static std::once_flag initFlag;
+        static int initResult = SSH_ERROR;
+
+        std::call_once(initFlag, []() {
+            initResult = ssh_init();
+        });
+
+        return initResult;
+    }
+
     std::wstring _getQueryValue(const std::wstring_view query, const std::wstring_view key)
     {
         size_t start = 0;
@@ -179,6 +191,13 @@ namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
         if (_host.empty())
         {
             _writeError(L"SSH host is empty.");
+            _transitionToState(ConnectionState::Failed);
+            return 0;
+        }
+
+        if (_ensureLibSshInitialized() != SSH_OK)
+        {
+            _writeError(L"Could not initialize SSH library.");
             _transitionToState(ConnectionState::Failed);
             return 0;
         }
