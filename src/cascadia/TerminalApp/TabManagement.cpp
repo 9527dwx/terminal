@@ -54,6 +54,26 @@ namespace winrt::TerminalApp::implementation
     {
         static constexpr int TabRowAnimationDurationInMilliseconds = 220;
 
+        WUX::CornerRadius MakeUniformCornerRadius(const double radius)
+        {
+            WUX::CornerRadius value;
+            value.TopLeft = radius;
+            value.TopRight = radius;
+            value.BottomRight = radius;
+            value.BottomLeft = radius;
+            return value;
+        }
+
+        WUX::Thickness MakeUniformThickness(const double thickness)
+        {
+            WUX::Thickness value;
+            value.Left = thickness;
+            value.Top = thickness;
+            value.Right = thickness;
+            value.Bottom = thickness;
+            return value;
+        }
+
         void AnimateOpacity(const UIElement& element, const double targetOpacity)
         {
             if (!element)
@@ -408,16 +428,8 @@ namespace winrt::TerminalApp::implementation
         }
         CATCH_LOG();
 
-        WUX::CornerRadius tabCornerRadius;
-        tabCornerRadius.TopLeft = 4;
-        tabCornerRadius.TopRight = 4;
-        tabCornerRadius.BottomRight = 4;
-        tabCornerRadius.BottomLeft = 4;
-        WUX::Thickness tabBorderThickness;
-        tabBorderThickness.Left = 1;
-        tabBorderThickness.Top = 1;
-        tabBorderThickness.Right = 1;
-        tabBorderThickness.Bottom = 1;
+        const auto tabCornerRadius = MakeUniformCornerRadius(4);
+        const auto tabBorderThickness = MakeUniformThickness(1);
         const auto applyBorderResources = [&](auto resources) {
             resources.Insert(box_value(L"TerminalTabBorderBrush"), borderBrush);
             resources.Insert(box_value(L"TerminalTabCornerRadius"), box_value(tabCornerRadius));
@@ -462,6 +474,8 @@ namespace winrt::TerminalApp::implementation
 
         VerticalTabPanel().Children().Clear();
         const auto focusedIndex = _GetFocusedTabIndex();
+        const auto tabCornerRadius = MakeUniformCornerRadius(4);
+        const auto tabBorderThickness = MakeUniformThickness(1);
         std::vector<std::pair<winrt::hstring, uint32_t>> titleCounts;
         for (uint32_t i = 0; i < _tabs.Size(); ++i)
         {
@@ -562,11 +576,7 @@ namespace winrt::TerminalApp::implementation
 
             WUX::Controls::Border selectedIndicator;
             selectedIndicator.Height(3);
-            WUX::CornerRadius indicatorRadius;
-            indicatorRadius.TopLeft = 2;
-            indicatorRadius.TopRight = 2;
-            indicatorRadius.BottomRight = 2;
-            indicatorRadius.BottomLeft = 2;
+            const auto indicatorRadius = MakeUniformCornerRadius(2);
             selectedIndicator.CornerRadius(indicatorRadius);
             selectedIndicator.HorizontalAlignment(HorizontalAlignment::Stretch);
             selectedIndicator.Background(Media::SolidColorBrush{ Windows::UI::ViewManagement::UISettings().GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent) });
