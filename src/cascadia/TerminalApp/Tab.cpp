@@ -151,17 +151,21 @@ namespace winrt::TerminalApp::implementation
     {
         TabViewItem(::winrt::MUX::Controls::TabViewItem{});
         const auto tabBorderBrush = WUX::Media::SolidColorBrush{ Windows::UI::Colors::White() };
+        const auto tabCornerRadius = CornerRadius{ 4, 4, 4, 4 };
         TabViewItem().BorderBrush(tabBorderBrush);
         TabViewItem().BorderThickness({ 1, 1, 1, 1 });
+        TabViewItem().CornerRadius(tabCornerRadius);
         TabViewItem().Resources().Insert(box_value(L"TerminalTabBorderBrush"), tabBorderBrush);
+        TabViewItem().Resources().Insert(box_value(L"TerminalTabCornerRadius"), tabCornerRadius);
+        TabViewItem().Resources().Insert(box_value(L"OverlayCornerRadius"), tabCornerRadius);
         TabViewItem().Resources().Insert(box_value(L"TabViewItemBorderThickness"), Thickness{ 1, 1, 1, 1 });
         TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderBorderThickness"), Thickness{ 1, 1, 1, 1 });
         TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderBorderBrush"), tabBorderBrush);
         TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderBorderBrushSelected"), tabBorderBrush);
         TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderBorderBrushPointerOver"), tabBorderBrush);
         TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderBorderBrushPressed"), tabBorderBrush);
-        TabViewItem().Resources().Insert(box_value(L"TabViewItemCornerRadius"), CornerRadius{ 4, 4, 4, 4 });
-        TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderCornerRadius"), CornerRadius{ 4, 4, 4, 4 });
+        TabViewItem().Resources().Insert(box_value(L"TabViewItemCornerRadius"), tabCornerRadius);
+        TabViewItem().Resources().Insert(box_value(L"TabViewItemHeaderCornerRadius"), tabCornerRadius);
 
         // GH#3609 If the tab was tapped, and no one else was around to handle
         // it, then ask our parent to toss focus into the active control.
