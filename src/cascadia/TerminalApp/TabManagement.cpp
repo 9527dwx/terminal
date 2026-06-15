@@ -408,18 +408,20 @@ namespace winrt::TerminalApp::implementation
         }
         CATCH_LOG();
 
+        const auto tabCornerRadius = CornerRadius{ 4, 4, 4, 4 };
+        const auto tabBorderThickness = Thickness{ 1, 1, 1, 1 };
         const auto applyBorderResources = [&](auto resources) {
             resources.Insert(box_value(L"TerminalTabBorderBrush"), borderBrush);
-            resources.Insert(box_value(L"TerminalTabCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
-            resources.Insert(box_value(L"OverlayCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
-            resources.Insert(box_value(L"TabViewItemBorderThickness"), box_value(Thickness{ 1, 1, 1, 1 }));
-            resources.Insert(box_value(L"TabViewItemHeaderBorderThickness"), box_value(Thickness{ 1, 1, 1, 1 }));
+            resources.Insert(box_value(L"TerminalTabCornerRadius"), box_value(tabCornerRadius));
+            resources.Insert(box_value(L"OverlayCornerRadius"), box_value(tabCornerRadius));
+            resources.Insert(box_value(L"TabViewItemBorderThickness"), box_value(tabBorderThickness));
+            resources.Insert(box_value(L"TabViewItemHeaderBorderThickness"), box_value(tabBorderThickness));
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrush"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushSelected"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPointerOver"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPressed"), borderBrush);
-            resources.Insert(box_value(L"TabViewItemCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
-            resources.Insert(box_value(L"TabViewItemHeaderCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
+            resources.Insert(box_value(L"TabViewItemCornerRadius"), box_value(tabCornerRadius));
+            resources.Insert(box_value(L"TabViewItemHeaderCornerRadius"), box_value(tabCornerRadius));
         };
 
         applyBorderResources(Application::Current().Resources());
@@ -430,8 +432,8 @@ namespace winrt::TerminalApp::implementation
         for (const auto& tab : _tabs)
         {
             tab.TabViewItem().BorderBrush(borderBrush);
-            tab.TabViewItem().BorderThickness({ 1, 1, 1, 1 });
-            tab.TabViewItem().CornerRadius({ 4, 4, 4, 4 });
+            tab.TabViewItem().BorderThickness(tabBorderThickness);
+            tab.TabViewItem().CornerRadius(tabCornerRadius);
             applyBorderResources(tab.TabViewItem().Resources());
         }
 
