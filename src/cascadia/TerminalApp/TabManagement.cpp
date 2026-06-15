@@ -410,16 +410,16 @@ namespace winrt::TerminalApp::implementation
 
         const auto applyBorderResources = [&](auto resources) {
             resources.Insert(box_value(L"TerminalTabBorderBrush"), borderBrush);
-            resources.Insert(box_value(L"TerminalTabCornerRadius"), CornerRadius{ 4, 4, 4, 4 });
-            resources.Insert(box_value(L"OverlayCornerRadius"), CornerRadius{ 4, 4, 4, 4 });
-            resources.Insert(box_value(L"TabViewItemBorderThickness"), Thickness{ 1, 1, 1, 1 });
-            resources.Insert(box_value(L"TabViewItemHeaderBorderThickness"), Thickness{ 1, 1, 1, 1 });
+            resources.Insert(box_value(L"TerminalTabCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
+            resources.Insert(box_value(L"OverlayCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
+            resources.Insert(box_value(L"TabViewItemBorderThickness"), box_value(Thickness{ 1, 1, 1, 1 }));
+            resources.Insert(box_value(L"TabViewItemHeaderBorderThickness"), box_value(Thickness{ 1, 1, 1, 1 }));
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrush"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushSelected"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPointerOver"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPressed"), borderBrush);
-            resources.Insert(box_value(L"TabViewItemCornerRadius"), CornerRadius{ 4, 4, 4, 4 });
-            resources.Insert(box_value(L"TabViewItemHeaderCornerRadius"), CornerRadius{ 4, 4, 4, 4 });
+            resources.Insert(box_value(L"TabViewItemCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
+            resources.Insert(box_value(L"TabViewItemHeaderCornerRadius"), box_value(CornerRadius{ 4, 4, 4, 4 }));
         };
 
         applyBorderResources(Application::Current().Resources());
