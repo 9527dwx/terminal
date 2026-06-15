@@ -408,12 +408,12 @@ namespace winrt::TerminalApp::implementation
         }
         CATCH_LOG();
 
-        CornerRadius tabCornerRadius;
+        WUX::CornerRadius tabCornerRadius;
         tabCornerRadius.TopLeft = 4;
         tabCornerRadius.TopRight = 4;
         tabCornerRadius.BottomRight = 4;
         tabCornerRadius.BottomLeft = 4;
-        Thickness tabBorderThickness;
+        WUX::Thickness tabBorderThickness;
         tabBorderThickness.Left = 1;
         tabBorderThickness.Top = 1;
         tabBorderThickness.Right = 1;
@@ -562,7 +562,7 @@ namespace winrt::TerminalApp::implementation
 
             WUX::Controls::Border selectedIndicator;
             selectedIndicator.Height(3);
-            CornerRadius indicatorRadius;
+            WUX::CornerRadius indicatorRadius;
             indicatorRadius.TopLeft = 2;
             indicatorRadius.TopRight = 2;
             indicatorRadius.BottomRight = 2;
