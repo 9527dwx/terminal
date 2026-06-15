@@ -50,6 +50,29 @@ namespace winrt
 
 namespace winrt::TerminalApp::implementation
 {
+    namespace
+    {
+        static constexpr int TabRowAnimationDurationInMilliseconds = 220;
+
+        void AnimateOpacity(const UIElement& element, const double targetOpacity)
+        {
+            if (!element)
+            {
+                return;
+            }
+
+            WUX::Media::Animation::Storyboard storyboard;
+            WUX::Media::Animation::DoubleAnimation animation;
+            animation.To(targetOpacity);
+            animation.Duration(DurationHelper::FromTimeSpan(winrt::Windows::Foundation::TimeSpan(std::chrono::milliseconds(TabRowAnimationDurationInMilliseconds))));
+            animation.EnableDependentAnimation(true);
+            storyboard.Children().Append(animation);
+            storyboard.SetTarget(animation, element);
+            storyboard.SetTargetProperty(animation, L"Opacity");
+            storyboard.Begin();
+        }
+    }
+
     // Method Description:
     // - Open a new tab. This will create the TerminalControl hosting the
     //   terminal, and add a new Tab to our list of tabs. The method can
@@ -318,7 +341,7 @@ namespace winrt::TerminalApp::implementation
         {
             const auto width = expanded ? 220.0 : 8.0;
             VerticalTabRail().Width(width);
-            VerticalTabRail().Opacity(expanded ? 0.92 : 0.35);
+            AnimateOpacity(VerticalTabRail(), expanded ? 0.92 : 0.35);
             const auto visibility = expanded ? Visibility::Visible : Visibility::Collapsed;
             VerticalTabPanel().Visibility(visibility);
             VerticalNewTabButton().Visibility(visibility);
@@ -328,7 +351,7 @@ namespace winrt::TerminalApp::implementation
         else if (_tabRow)
         {
             _tabRow.Height(_IsAutoHideTabRow() && !expanded ? 6 : NAN);
-            _tabRow.Opacity(_IsAutoHideTabRow() && !expanded ? 0.08 : 1.0);
+            AnimateOpacity(_tabRow, _IsAutoHideTabRow() && !expanded ? 0.08 : 1.0);
         }
     }
 
@@ -342,6 +365,7 @@ namespace winrt::TerminalApp::implementation
         _settings.GlobalSettings().TabRowPlacement(_IsVerticalTabRow() ? L"top" : L"left");
         _tabRowExpanded = true;
         _ApplyTabRowLayoutSettings();
+        LOG_IF_FAILED(_settings.WriteSettingsToDisk() ? S_OK : E_FAIL);
     }
 
     void TerminalPage::_ToggleAutoHideTabRow(const IInspectable&, const RoutedEventArgs&)
@@ -354,6 +378,7 @@ namespace winrt::TerminalApp::implementation
         _settings.GlobalSettings().AutoHideTabRow(!_settings.GlobalSettings().AutoHideTabRow());
         _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
         _ApplyTabRowLayoutSettings();
+        LOG_IF_FAILED(_settings.WriteSettingsToDisk() ? S_OK : E_FAIL);
     }
 
     void TerminalPage::_TabRowPointerEntered(const IInspectable&, const Input::PointerRoutedEventArgs&)
@@ -385,6 +410,8 @@ namespace winrt::TerminalApp::implementation
 
         const auto applyBorderResources = [&](auto resources) {
             resources.Insert(box_value(L"TerminalTabBorderBrush"), borderBrush);
+            resources.Insert(box_value(L"TabViewItemBorderThickness"), Thickness{ 1, 1, 1, 1 });
+            resources.Insert(box_value(L"TabViewItemHeaderBorderThickness"), Thickness{ 1, 1, 1, 1 });
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrush"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushSelected"), borderBrush);
             resources.Insert(box_value(L"TabViewItemHeaderBorderBrushPointerOver"), borderBrush);
@@ -414,37 +441,112 @@ namespace winrt::TerminalApp::implementation
             return;
         }
 
+        static constexpr std::wstring_view circledNumbers[] = {
+            L"\x2460", L"\x2461", L"\x2462", L"\x2463", L"\x2464", L"\x2465", L"\x2466", L"\x2467", L"\x2468", L"\x2469"
+        };
+
         VerticalTabPanel().Children().Clear();
         const auto focusedIndex = _GetFocusedTabIndex();
+        std::vector<std::pair<winrt::hstring, uint32_t>> titleCounts;
         for (uint32_t i = 0; i < _tabs.Size(); ++i)
         {
             const auto tab = _tabs.GetAt(i);
-            WUX::Controls::Button button;
-            button.HorizontalAlignment(HorizontalAlignment::Stretch);
-            button.HorizontalContentAlignment(HorizontalAlignment::Left);
-            button.Padding({ 10, 6, 10, 6 });
-            button.Content(box_value(tab.Title()));
-            button.BorderThickness({ 1, 1, 1, 1 });
-            if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
+            const auto title = tab.Title();
+            uint32_t titleCount = 1;
+            auto titleEntry = std::find_if(titleCounts.begin(), titleCounts.end(), [&title](const auto& entry) {
+                return entry.first == title;
+            });
+            if (titleEntry == titleCounts.end())
             {
-                button.BorderBrush(border.as<Media::Brush>());
-            }
-            if (focusedIndex && *focusedIndex == i)
-            {
-                button.FontWeight(FontWeights::Bold());
-                button.Opacity(1.0);
+                titleCounts.emplace_back(title, titleCount);
             }
             else
             {
-                button.Opacity(0.78);
+                titleCount = ++titleEntry->second;
             }
-            button.Click([weakThis{ get_weak() }, i](auto&&, auto&&) {
+            const auto ordinal = titleCount <= std::size(circledNumbers) ?
+                                     winrt::hstring{ circledNumbers[titleCount - 1] } :
+                                     til::hstring_format(FMT_COMPILE(L"({})"), titleCount);
+            const auto displayTitle = til::hstring_format(FMT_COMPILE(L"{} {}"), title, ordinal);
+
+            WUX::Controls::Border tabItem;
+            tabItem.Height(34);
+            tabItem.Margin({ 0, 0, 0, 4 });
+            tabItem.Padding({ 8, 4, 4, 4 });
+            tabItem.HorizontalAlignment(HorizontalAlignment::Stretch);
+            tabItem.BorderThickness({ 1, 1, 1, 1 });
+            tabItem.CornerRadius({ 4, 4, 4, 4 });
+            if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
+            {
+                tabItem.BorderBrush(border.as<Media::Brush>());
+            }
+            if (focusedIndex && *focusedIndex == i)
+            {
+                tabItem.Opacity(1.0);
+            }
+            else
+            {
+                tabItem.Opacity(0.78);
+            }
+
+            WUX::Controls::Grid tabItemContent;
+            WUX::Controls::ColumnDefinition iconColumn;
+            iconColumn.Width(GridLengthHelper::FromValueAndType(22, GridUnitType::Pixel));
+            WUX::Controls::ColumnDefinition titleColumn;
+            titleColumn.Width(GridLengthHelper::FromValueAndType(1, GridUnitType::Star));
+            WUX::Controls::ColumnDefinition closeColumn;
+            closeColumn.Width(GridLengthHelper::FromValueAndType(28, GridUnitType::Pixel));
+            tabItemContent.ColumnDefinitions().Append(iconColumn);
+            tabItemContent.ColumnDefinitions().Append(titleColumn);
+            tabItemContent.ColumnDefinitions().Append(closeColumn);
+
+            if (const auto iconSource = tab.TabViewItem().IconSource())
+            {
+                MUX::Controls::IconSourceElement iconElement;
+                iconElement.IconSource(iconSource);
+                iconElement.Width(16);
+                iconElement.Height(16);
+                iconElement.VerticalAlignment(VerticalAlignment::Center);
+                WUX::Controls::Grid::SetColumn(iconElement, 0);
+                tabItemContent.Children().Append(iconElement);
+            }
+
+            WUX::Controls::TextBlock titleBlock;
+            titleBlock.Text(displayTitle);
+            titleBlock.TextTrimming(TextTrimming::CharacterEllipsis);
+            titleBlock.VerticalAlignment(VerticalAlignment::Center);
+            if (focusedIndex && *focusedIndex == i)
+            {
+                titleBlock.FontWeight(FontWeights::Bold());
+            }
+            WUX::Controls::Grid::SetColumn(titleBlock, 1);
+            tabItemContent.Children().Append(titleBlock);
+
+            WUX::Controls::Button closeButton;
+            closeButton.Width(24);
+            closeButton.Height(24);
+            closeButton.Padding({ 0, 0, 0, 0 });
+            closeButton.Content(box_value(L"\xE711"));
+            closeButton.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
+            closeButton.FontSize(10);
+            closeButton.VerticalAlignment(VerticalAlignment::Center);
+            closeButton.Click([weakThis{ get_weak() }, tab](auto&&, auto&&) {
+                if (const auto page{ weakThis.get() })
+                {
+                    page->_HandleCloseTabRequested(tab);
+                }
+            });
+            WUX::Controls::Grid::SetColumn(closeButton, 2);
+            tabItemContent.Children().Append(closeButton);
+
+            tabItem.Tapped([weakThis{ get_weak() }, i](auto&&, auto&&) {
                 if (const auto page{ weakThis.get() })
                 {
                     page->_SelectTab(i);
                 }
             });
-            VerticalTabPanel().Children().Append(button);
+            tabItem.Child(tabItemContent);
+            VerticalTabPanel().Children().Append(tabItem);
         }
     }
 

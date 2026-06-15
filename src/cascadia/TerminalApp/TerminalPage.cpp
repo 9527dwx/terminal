@@ -290,6 +290,7 @@ namespace winrt::TerminalApp::implementation
 
         if (_tabRow)
         {
+            _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
             _ApplyTabRowLayoutSettings();
         }
 
@@ -443,6 +444,7 @@ namespace winrt::TerminalApp::implementation
         _verticalNewTabButton.Flyout(_newTabButton.Flyout());
 
         _UpdateTabWidthMode();
+        _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
         _ApplyTabRowLayoutSettings();
 
         // Settings AllowDependentAnimations will affect whether animations are

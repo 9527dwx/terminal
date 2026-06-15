@@ -48,6 +48,7 @@
                     <Thickness x:Key="TabViewHeaderPadding">0,0,0,0</Thickness>
 
                     <Thickness x:Key="TabViewItemBorderThickness">1,1,1,1</Thickness>
+                    <Thickness x:Key="TabViewItemHeaderBorderThickness">1,1,1,1</Thickness>
                     <CornerRadius x:Key="TabViewItemCornerRadius">4,4,4,4</CornerRadius>
                     <CornerRadius x:Key="TabViewItemHeaderCornerRadius">4,4,4,4</CornerRadius>
                     <SolidColorBrush x:Key="TerminalTabBorderBrush"
