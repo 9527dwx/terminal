@@ -22,6 +22,8 @@
 #include "../TerminalSettingsAppAdapterLib/TerminalSettings.h"
 
 #include <shlobj.h>
+#include <filesystem>
+#include <mutex>
 
 using namespace winrt;
 using namespace winrt::Windows::Foundation::Collections;
@@ -53,6 +55,106 @@ namespace winrt::TerminalApp::implementation
     namespace
     {
         static constexpr int TabRowAnimationDurationInMilliseconds = 220;
+        static constexpr uint64_t RuntimeLogMaxBytes = 2ull * 1024ull * 1024ull;
+
+        std::string ToUtf8(const std::wstring_view value)
+        {
+            if (value.empty())
+            {
+                return {};
+            }
+
+            const auto length = WideCharToMultiByte(CP_UTF8, 0, value.data(), gsl::narrow<int>(value.size()), nullptr, 0, nullptr, nullptr);
+            std::string result(length, '\0');
+            WideCharToMultiByte(CP_UTF8, 0, value.data(), gsl::narrow<int>(value.size()), result.data(), length, nullptr, nullptr);
+            return result;
+        }
+
+        std::filesystem::path PickRuntimeLogFile(const std::filesystem::path& directory, const uint64_t writeSize)
+        {
+            const auto first = directory / L"terminal-runtime-0.log";
+            const auto second = directory / L"terminal-runtime-1.log";
+
+            const auto fileSize = [](const std::filesystem::path& path) -> uint64_t {
+                std::error_code ec;
+                if (!std::filesystem::exists(path, ec))
+                {
+                    return 0;
+                }
+                return std::filesystem::file_size(path, ec);
+            };
+
+            const auto lastWrite = [](const std::filesystem::path& path) {
+                std::error_code ec;
+                return std::filesystem::last_write_time(path, ec);
+            };
+
+            const auto firstSize = fileSize(first);
+            const auto secondSize = fileSize(second);
+            if (firstSize > 0 && firstSize + writeSize <= RuntimeLogMaxBytes && lastWrite(first) >= lastWrite(second))
+            {
+                return first;
+            }
+            if (secondSize > 0 && secondSize + writeSize <= RuntimeLogMaxBytes)
+            {
+                return second;
+            }
+            if (firstSize + writeSize <= RuntimeLogMaxBytes)
+            {
+                return first;
+            }
+            if (secondSize + writeSize <= RuntimeLogMaxBytes)
+            {
+                return second;
+            }
+
+            return lastWrite(first) <= lastWrite(second) ? first : second;
+        }
+
+        void RuntimeLog(const std::wstring_view message)
+        {
+            try
+            {
+                static std::mutex lock;
+                std::lock_guard guard{ lock };
+
+                std::filesystem::path exePath{ wil::GetModuleFileNameW<std::wstring>(nullptr) };
+                const auto directory = exePath.parent_path() / L"runtime-logs";
+                std::error_code ec;
+                std::filesystem::create_directories(directory, ec);
+                if (ec)
+                {
+                    return;
+                }
+
+                SYSTEMTIME time;
+                GetLocalTime(&time);
+                const auto line = fmt::format(FMT_COMPILE(L"{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03} [tab-row] {}\r\n"),
+                                              time.wYear,
+                                              time.wMonth,
+                                              time.wDay,
+                                              time.wHour,
+                                              time.wMinute,
+                                              time.wSecond,
+                                              time.wMilliseconds,
+                                              message);
+                const auto utf8 = ToUtf8(line);
+                const auto logFile = PickRuntimeLogFile(directory, utf8.size());
+                const auto existingSize = std::filesystem::exists(logFile, ec) ? std::filesystem::file_size(logFile, ec) : 0;
+                const auto truncate = existingSize + utf8.size() > RuntimeLogMaxBytes;
+                wil::unique_hfile file{ CreateFileW(logFile.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, truncate ? CREATE_ALWAYS : OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr) };
+                if (!file)
+                {
+                    return;
+                }
+
+                DWORD written = 0;
+                WriteFile(file.get(), utf8.data(), gsl::narrow<DWORD>(utf8.size()), &written, nullptr);
+            }
+            catch (...)
+            {
+            }
+        }
 
         WUX::CornerRadius MakeUniformCornerRadius(const double radius)
         {
@@ -306,6 +408,12 @@ namespace winrt::TerminalApp::implementation
 
         const auto isVertical = _IsVerticalTabRow();
         const auto autoHide = _IsAutoHideTabRow();
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateTabView visible={} vertical={} autoHide={} expanded={} tabs={}"),
+                               isVisible,
+                               isVertical,
+                               autoHide,
+                               _tabRowExpanded,
+                               _tabs.Size()));
 
         if (_tabView)
         {
@@ -356,6 +464,10 @@ namespace winrt::TerminalApp::implementation
 
     void TerminalPage::_SetTabRowExpanded(const bool expanded)
     {
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_SetTabRowExpanded begin expanded={} vertical={} autoHide={}"),
+                               expanded,
+                               _IsVerticalTabRow(),
+                               _IsAutoHideTabRow()));
         _tabRowExpanded = expanded;
         if (_IsVerticalTabRow())
         {
@@ -373,6 +485,7 @@ namespace winrt::TerminalApp::implementation
             _tabRow.Height(_IsAutoHideTabRow() && !expanded ? 6 : NAN);
             AnimateOpacity(_tabRow, _IsAutoHideTabRow() && !expanded ? 0.08 : 1.0);
         }
+        RuntimeLog(L"_SetTabRowExpanded end");
     }
 
     void TerminalPage::_ToggleTabRowPlacement(const IInspectable&, const RoutedEventArgs&)
@@ -382,10 +495,12 @@ namespace winrt::TerminalApp::implementation
             return;
         }
 
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleTabRowPlacement before vertical={}"), _IsVerticalTabRow()));
         _settings.GlobalSettings().TabRowPlacement(_IsVerticalTabRow() ? L"top" : L"left");
         _tabRowExpanded = true;
         _ApplyTabRowLayoutSettings();
         LOG_IF_FAILED(_settings.WriteSettingsToDisk() ? S_OK : E_FAIL);
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleTabRowPlacement after vertical={}"), _IsVerticalTabRow()));
     }
 
     void TerminalPage::_ToggleAutoHideTabRow(const IInspectable&, const RoutedEventArgs&)
@@ -395,10 +510,12 @@ namespace winrt::TerminalApp::implementation
             return;
         }
 
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleAutoHideTabRow before autoHide={}"), _settings.GlobalSettings().AutoHideTabRow()));
         _settings.GlobalSettings().AutoHideTabRow(!_settings.GlobalSettings().AutoHideTabRow());
         _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
         _ApplyTabRowLayoutSettings();
         LOG_IF_FAILED(_settings.WriteSettingsToDisk() ? S_OK : E_FAIL);
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleAutoHideTabRow after autoHide={}"), _settings.GlobalSettings().AutoHideTabRow()));
     }
 
     void TerminalPage::_TabRowPointerEntered(const IInspectable&, const Input::PointerRoutedEventArgs&)
@@ -419,6 +536,10 @@ namespace winrt::TerminalApp::implementation
 
     void TerminalPage::_ApplyTabRowLayoutSettings()
     {
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_ApplyTabRowLayoutSettings begin vertical={} autoHide={} tabs={}"),
+                               _IsVerticalTabRow(),
+                               _IsAutoHideTabRow(),
+                               _tabs.Size()));
         Media::SolidColorBrush borderBrush{ Windows::UI::Colors::White() };
         try
         {
@@ -459,12 +580,14 @@ namespace winrt::TerminalApp::implementation
 
         _UpdateVerticalTabRail();
         _UpdateTabView();
+        RuntimeLog(L"_ApplyTabRowLayoutSettings end");
     }
 
     void TerminalPage::_UpdateVerticalTabRail()
     {
         if (!VerticalTabPanel())
         {
+            RuntimeLog(L"_UpdateVerticalTabRail skipped: no panel");
             return;
         }
 
@@ -472,14 +595,23 @@ namespace winrt::TerminalApp::implementation
             L"\x2460", L"\x2461", L"\x2462", L"\x2463", L"\x2464", L"\x2465", L"\x2466", L"\x2467", L"\x2468", L"\x2469"
         };
 
-        VerticalTabPanel().Children().Clear();
         const auto focusedIndex = _GetFocusedTabIndex();
         const auto tabCornerRadius = MakeUniformCornerRadius(4);
         const auto tabBorderThickness = MakeUniformThickness(1);
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail begin tabs={} focused={}"),
+                               _tabs.Size(),
+                               focusedIndex ? *focusedIndex : 0xffffffffu));
+        RuntimeLog(L"_UpdateVerticalTabRail clearing panel");
+        VerticalTabPanel().Children().Clear();
+        RuntimeLog(L"_UpdateVerticalTabRail panel cleared");
         std::vector<std::pair<winrt::hstring, uint32_t>> titleCounts;
         for (uint32_t i = 0; i < _tabs.Size(); ++i)
         {
             const auto tab = _tabs.GetAt(i);
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} begin hasIcon={} hasFlyout={}"),
+                                   i,
+                                   !tab.Icon().empty(),
+                                   static_cast<bool>(tab.TabViewItem().ContextFlyout())));
             const auto title = tab.Title();
             uint32_t titleCount = 1;
             auto titleEntry = std::find_if(titleCounts.begin(), titleCounts.end(), [&title](const auto& entry) {
@@ -499,13 +631,13 @@ namespace winrt::TerminalApp::implementation
             const auto displayTitle = til::hstring_format(FMT_COMPILE(L"{} {}"), title, ordinal);
 
             WUX::Controls::Border tabItem;
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create border"), i));
             tabItem.Height(34);
             tabItem.Margin({ 0, 0, 0, 4 });
             tabItem.Padding({ 8, 4, 4, 0 });
             tabItem.HorizontalAlignment(HorizontalAlignment::Stretch);
             tabItem.BorderThickness(tabBorderThickness);
             tabItem.CornerRadius(tabCornerRadius);
-            tabItem.ContextFlyout(tab.TabViewItem().ContextFlyout());
             if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
             {
                 tabItem.BorderBrush(border.as<Media::Brush>());
@@ -538,14 +670,17 @@ namespace winrt::TerminalApp::implementation
 
             if (!tab.Icon().empty())
             {
+                RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create icon"), i));
                 auto iconElement = UI::IconPathConverter::IconWUX(tab.Icon());
                 iconElement.Width(16);
                 iconElement.Height(16);
                 iconElement.VerticalAlignment(VerticalAlignment::Center);
                 WUX::Controls::Grid::SetColumn(iconElement, 0);
                 tabItemContent.Children().Append(iconElement);
+                RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} icon appended"), i));
             }
 
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create title"), i));
             WUX::Controls::TextBlock titleBlock;
             titleBlock.Text(displayTitle);
             titleBlock.TextTrimming(TextTrimming::CharacterEllipsis);
@@ -558,6 +693,7 @@ namespace winrt::TerminalApp::implementation
             tabItemContent.Children().Append(titleBlock);
 
             WUX::Controls::Button closeButton;
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create close button"), i));
             closeButton.Width(24);
             closeButton.Height(24);
             closeButton.Padding({ 0, 0, 0, 0 });
@@ -575,6 +711,7 @@ namespace winrt::TerminalApp::implementation
             tabItemContent.Children().Append(closeButton);
 
             WUX::Controls::Border selectedIndicator;
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create indicator"), i));
             selectedIndicator.Height(3);
             const auto indicatorRadius = MakeUniformCornerRadius(2);
             selectedIndicator.CornerRadius(indicatorRadius);
@@ -591,9 +728,24 @@ namespace winrt::TerminalApp::implementation
                     page->_SelectTab(i);
                 }
             });
+            tabItem.RightTapped([tab](auto&& sender, auto&& e) {
+                if (const auto target = sender.try_as<WUX::Controls::Border>())
+                {
+                    if (const auto flyout = tab.TabViewItem().ContextFlyout())
+                    {
+                        RuntimeLog(L"vertical tab right tapped: show flyout");
+                        flyout.ShowAt(target);
+                        e.Handled(true);
+                    }
+                }
+            });
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} attach child"), i));
             tabItem.Child(tabItemContent);
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} append"), i));
             VerticalTabPanel().Children().Append(tabItem);
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} end"), i));
         }
+        RuntimeLog(L"_UpdateVerticalTabRail end");
     }
 
     // Method Description:
