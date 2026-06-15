@@ -472,10 +472,11 @@ namespace winrt::TerminalApp::implementation
             WUX::Controls::Border tabItem;
             tabItem.Height(34);
             tabItem.Margin({ 0, 0, 0, 4 });
-            tabItem.Padding({ 8, 4, 4, 4 });
+            tabItem.Padding({ 8, 4, 4, 0 });
             tabItem.HorizontalAlignment(HorizontalAlignment::Stretch);
             tabItem.BorderThickness({ 1, 1, 1, 1 });
             tabItem.CornerRadius({ 4, 4, 4, 4 });
+            tabItem.ContextFlyout(tab.TabViewItem().ContextFlyout());
             if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
             {
                 tabItem.BorderBrush(border.as<Media::Brush>());
@@ -490,6 +491,12 @@ namespace winrt::TerminalApp::implementation
             }
 
             WUX::Controls::Grid tabItemContent;
+            WUX::Controls::RowDefinition contentRow;
+            contentRow.Height(GridLengthHelper::FromValueAndType(1, GridUnitType::Star));
+            WUX::Controls::RowDefinition indicatorRow;
+            indicatorRow.Height(GridLengthHelper::FromValueAndType(3, GridUnitType::Pixel));
+            tabItemContent.RowDefinitions().Append(contentRow);
+            tabItemContent.RowDefinitions().Append(indicatorRow);
             WUX::Controls::ColumnDefinition iconColumn;
             iconColumn.Width(GridLengthHelper::FromValueAndType(22, GridUnitType::Pixel));
             WUX::Controls::ColumnDefinition titleColumn;
@@ -538,6 +545,16 @@ namespace winrt::TerminalApp::implementation
             });
             WUX::Controls::Grid::SetColumn(closeButton, 2);
             tabItemContent.Children().Append(closeButton);
+
+            WUX::Controls::Border selectedIndicator;
+            selectedIndicator.Height(3);
+            selectedIndicator.CornerRadius({ 2, 2, 2, 2 });
+            selectedIndicator.HorizontalAlignment(HorizontalAlignment::Stretch);
+            selectedIndicator.Background(Media::SolidColorBrush{ Windows::UI::ViewManagement::UISettings().GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent) });
+            selectedIndicator.Visibility(focusedIndex && *focusedIndex == i ? Visibility::Visible : Visibility::Collapsed);
+            WUX::Controls::Grid::SetRow(selectedIndicator, 1);
+            WUX::Controls::Grid::SetColumnSpan(selectedIndicator, 3);
+            tabItemContent.Children().Append(selectedIndicator);
 
             tabItem.Tapped([weakThis{ get_weak() }, i](auto&&, auto&&) {
                 if (const auto page{ weakThis.get() })
