@@ -408,8 +408,16 @@ namespace winrt::TerminalApp::implementation
         }
         CATCH_LOG();
 
-        const auto tabCornerRadius = CornerRadius{ 4, 4, 4, 4 };
-        const auto tabBorderThickness = Thickness{ 1, 1, 1, 1 };
+        CornerRadius tabCornerRadius;
+        tabCornerRadius.TopLeft = 4;
+        tabCornerRadius.TopRight = 4;
+        tabCornerRadius.BottomRight = 4;
+        tabCornerRadius.BottomLeft = 4;
+        Thickness tabBorderThickness;
+        tabBorderThickness.Left = 1;
+        tabBorderThickness.Top = 1;
+        tabBorderThickness.Right = 1;
+        tabBorderThickness.Bottom = 1;
         const auto applyBorderResources = [&](auto resources) {
             resources.Insert(box_value(L"TerminalTabBorderBrush"), borderBrush);
             resources.Insert(box_value(L"TerminalTabCornerRadius"), box_value(tabCornerRadius));
@@ -481,8 +489,8 @@ namespace winrt::TerminalApp::implementation
             tabItem.Margin({ 0, 0, 0, 4 });
             tabItem.Padding({ 8, 4, 4, 0 });
             tabItem.HorizontalAlignment(HorizontalAlignment::Stretch);
-            tabItem.BorderThickness({ 1, 1, 1, 1 });
-            tabItem.CornerRadius({ 4, 4, 4, 4 });
+            tabItem.BorderThickness(tabBorderThickness);
+            tabItem.CornerRadius(tabCornerRadius);
             tabItem.ContextFlyout(tab.TabViewItem().ContextFlyout());
             if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
             {
@@ -514,10 +522,9 @@ namespace winrt::TerminalApp::implementation
             tabItemContent.ColumnDefinitions().Append(titleColumn);
             tabItemContent.ColumnDefinitions().Append(closeColumn);
 
-            if (const auto iconSource = tab.TabViewItem().IconSource())
+            if (!tab.Icon().empty())
             {
-                MUX::Controls::IconSourceElement iconElement;
-                iconElement.IconSource(iconSource);
+                auto iconElement = UI::IconPathConverter::IconWUX(tab.Icon());
                 iconElement.Width(16);
                 iconElement.Height(16);
                 iconElement.VerticalAlignment(VerticalAlignment::Center);
@@ -555,7 +562,12 @@ namespace winrt::TerminalApp::implementation
 
             WUX::Controls::Border selectedIndicator;
             selectedIndicator.Height(3);
-            selectedIndicator.CornerRadius({ 2, 2, 2, 2 });
+            CornerRadius indicatorRadius;
+            indicatorRadius.TopLeft = 2;
+            indicatorRadius.TopRight = 2;
+            indicatorRadius.BottomRight = 2;
+            indicatorRadius.BottomLeft = 2;
+            selectedIndicator.CornerRadius(indicatorRadius);
             selectedIndicator.HorizontalAlignment(HorizontalAlignment::Stretch);
             selectedIndicator.Background(Media::SolidColorBrush{ Windows::UI::ViewManagement::UISettings().GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent) });
             selectedIndicator.Visibility(focusedIndex && *focusedIndex == i ? Visibility::Visible : Visibility::Collapsed);

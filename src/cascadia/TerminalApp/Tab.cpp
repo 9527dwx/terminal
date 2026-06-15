@@ -151,8 +151,16 @@ namespace winrt::TerminalApp::implementation
     {
         TabViewItem(::winrt::MUX::Controls::TabViewItem{});
         const auto tabBorderBrush = WUX::Media::SolidColorBrush{ Windows::UI::Colors::White() };
-        const auto tabCornerRadius = CornerRadius{ 4, 4, 4, 4 };
-        const auto tabBorderThickness = Thickness{ 1, 1, 1, 1 };
+        CornerRadius tabCornerRadius;
+        tabCornerRadius.TopLeft = 4;
+        tabCornerRadius.TopRight = 4;
+        tabCornerRadius.BottomRight = 4;
+        tabCornerRadius.BottomLeft = 4;
+        Thickness tabBorderThickness;
+        tabBorderThickness.Left = 1;
+        tabBorderThickness.Top = 1;
+        tabBorderThickness.Right = 1;
+        tabBorderThickness.Bottom = 1;
         TabViewItem().BorderBrush(tabBorderBrush);
         TabViewItem().BorderThickness(tabBorderThickness);
         TabViewItem().CornerRadius(tabCornerRadius);
