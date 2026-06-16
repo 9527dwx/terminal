@@ -473,7 +473,7 @@ namespace winrt::TerminalApp::implementation
         {
             const auto width = expanded ? 220.0 : 8.0;
             VerticalTabRail().Width(width);
-            AnimateOpacity(VerticalTabRail(), expanded ? 0.92 : 0.35);
+            VerticalTabRail().Opacity(expanded ? 0.92 : 0.35);
             const auto visibility = expanded ? Visibility::Visible : Visibility::Collapsed;
             VerticalTabPanel().Visibility(visibility);
             VerticalNewTabButton().Visibility(visibility);
@@ -668,17 +668,16 @@ namespace winrt::TerminalApp::implementation
             tabItemContent.ColumnDefinitions().Append(titleColumn);
             tabItemContent.ColumnDefinitions().Append(closeColumn);
 
-            if (!tab.Icon().empty())
-            {
-                RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create icon"), i));
-                auto iconElement = UI::IconPathConverter::IconWUX(tab.Icon());
-                iconElement.Width(16);
-                iconElement.Height(16);
-                iconElement.VerticalAlignment(VerticalAlignment::Center);
-                WUX::Controls::Grid::SetColumn(iconElement, 0);
-                tabItemContent.Children().Append(iconElement);
-                RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} icon appended"), i));
-            }
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create stable icon"), i));
+            WUX::Controls::TextBlock iconBlock;
+            iconBlock.Text(L"\xE756");
+            iconBlock.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
+            iconBlock.FontSize(12);
+            iconBlock.HorizontalAlignment(HorizontalAlignment::Center);
+            iconBlock.VerticalAlignment(VerticalAlignment::Center);
+            WUX::Controls::Grid::SetColumn(iconBlock, 0);
+            tabItemContent.Children().Append(iconBlock);
+            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} stable icon appended"), i));
 
             RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create title"), i));
             WUX::Controls::TextBlock titleBlock;
