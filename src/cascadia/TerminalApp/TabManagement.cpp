@@ -427,17 +427,25 @@ namespace winrt::TerminalApp::implementation
             _tabRow.Visibility(isVisible && !isVertical ? Visibility::Visible : Visibility::Collapsed);
             if (isVisible && !isVertical)
             {
-                _tabRow.Height(autoHide && !_tabRowExpanded ? 6 : NAN);
-                _tabRow.Opacity(autoHide && !_tabRowExpanded ? 0.08 : 1.0);
+                const auto showHorizontalTabRow = !autoHide || _tabRowExpanded;
+                _tabRow.Height(showHorizontalTabRow ? NAN : 0);
+                _tabRow.Opacity(showHorizontalTabRow ? 1.0 : 0.0);
+                _tabRow.Visibility(showHorizontalTabRow ? Visibility::Visible : Visibility::Collapsed);
             }
             else
             {
                 _tabRow.Height(0);
+                _tabRow.Opacity(0.0);
             }
         }
         if (VerticalTabRail())
         {
             VerticalTabRail().Visibility(isVisible && isVertical ? Visibility::Visible : Visibility::Collapsed);
+            if (VerticalTabColumn())
+            {
+                const auto width = isVisible && isVertical ? ((!autoHide || _tabRowExpanded) ? 220.0 : 8.0) : 0.0;
+                VerticalTabColumn().Width(GridLengthHelper::FromValueAndType(width, GridUnitType::Pixel));
+            }
             if (isVisible && isVertical)
             {
                 _SetTabRowExpanded(!autoHide || _tabRowExpanded);
@@ -472,7 +480,10 @@ namespace winrt::TerminalApp::implementation
         if (_IsVerticalTabRow())
         {
             const auto width = expanded ? 220.0 : 8.0;
-            VerticalTabRail().Width(width);
+            if (VerticalTabColumn())
+            {
+                VerticalTabColumn().Width(GridLengthHelper::FromValueAndType(width, GridUnitType::Pixel));
+            }
             VerticalTabRail().Opacity(expanded ? 0.92 : 0.35);
             const auto visibility = expanded ? Visibility::Visible : Visibility::Collapsed;
             VerticalTabPanel().Visibility(visibility);
@@ -482,8 +493,10 @@ namespace winrt::TerminalApp::implementation
         }
         else if (_tabRow)
         {
-            _tabRow.Height(_IsAutoHideTabRow() && !expanded ? 6 : NAN);
-            AnimateOpacity(_tabRow, _IsAutoHideTabRow() && !expanded ? 0.08 : 1.0);
+            const auto showHorizontalTabRow = !_IsAutoHideTabRow() || expanded;
+            _tabRow.Height(showHorizontalTabRow ? NAN : 0);
+            _tabRow.Opacity(showHorizontalTabRow ? 1.0 : 0.0);
+            _tabRow.Visibility(showHorizontalTabRow ? Visibility::Visible : Visibility::Collapsed);
         }
         RuntimeLog(L"_SetTabRowExpanded end");
     }
