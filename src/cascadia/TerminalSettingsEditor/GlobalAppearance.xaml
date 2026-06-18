@@ -52,22 +52,6 @@
                       Style="{StaticResource ComboBoxSettingStyle}" />
         </local:SettingContainer>
 
-        <!--  Show Titlebar  -->
-        <local:SettingContainer x:Name="ShowTitlebar"
-                                x:Uid="Globals_ShowTitlebar">
-            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTabsInTitlebar, Mode=TwoWay}"
-                          Style="{StaticResource ToggleSwitchInExpanderStyle}"
-                          Toggled="{x:Bind ViewModel.ShowTitlebarToggled}" />
-        </local:SettingContainer>
-
-        <!--  Always show tabs  -->
-        <local:SettingContainer x:Name="AlwaysShowTabs"
-                                x:Uid="Globals_AlwaysShowTabs">
-            <ToggleSwitch IsEnabled="{x:Bind mtu:Converters.InvertBoolean(ViewModel.ShowTabsInTitlebar), Mode=OneWay}"
-                          IsOn="{x:Bind ViewModel.AlwaysShowTabs, Mode=TwoWay}"
-                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
-        </local:SettingContainer>
-
         <!--  Show tabs in full screen  -->
         <local:SettingContainer x:Name="ShowTabsFullscreen"
                                 x:Uid="Globals_ShowTabsFullscreen">
@@ -104,21 +88,6 @@
                       ItemsSource="{x:Bind ViewModel.TabWidthModeList, Mode=OneWay}"
                       SelectedItem="{x:Bind ViewModel.CurrentTabWidthMode, Mode=TwoWay}"
                       Style="{StaticResource ComboBoxSettingStyle}" />
-        </local:SettingContainer>
-
-        <local:SettingContainer x:Name="TabRowPlacement"
-                                Header="Tab row placement"
-                                HelpText="Use top for the normal horizontal tab row, or left for the vertical tab rail.">
-            <TextBox IsSpellCheckEnabled="False"
-                     PlaceholderText="top or left"
-                     Style="{StaticResource TextBoxSettingStyle}"
-                     Text="{x:Bind ViewModel.TabRowPlacement, Mode=TwoWay}" />
-        </local:SettingContainer>
-
-        <local:SettingContainer x:Name="AutoHideTabRow"
-                                Header="Auto-hide tab row">
-            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoHideTabRow, Mode=TwoWay}"
-                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
         </local:SettingContainer>
 
         <local:SettingContainer x:Name="TabBorderColor"

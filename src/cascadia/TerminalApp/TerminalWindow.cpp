@@ -273,7 +273,7 @@ namespace winrt::TerminalApp::implementation
 
     bool TerminalWindow::GetShowTabsInTitlebar()
     {
-        return _settings.GlobalSettings().ShowTabsInTitlebar();
+        return true;
     }
 
     bool TerminalWindow::GetInitialAlwaysOnTop()
@@ -648,10 +648,9 @@ namespace winrt::TerminalApp::implementation
             };
         }
 
-        // GH#2061 - If the global setting "Always show tab bar" is
-        // set or if "Show tabs in title bar" is set, then we'll need to add
-        // the height of the tab bar here.
-        if (_settings.GlobalSettings().ShowTabsInTitlebar() && !focusMode)
+        // The tab row is always hosted in the titlebar, so include the titlebar
+        // height whenever focus mode is off.
+        if (!focusMode)
         {
             // In the past, we used to actually instantiate a TitlebarControl
             // and use Measure() to determine the DesiredSize of the control, to
@@ -669,18 +668,6 @@ namespace winrt::TerminalApp::implementation
             static constexpr auto titlebarHeight = 40;
             proposedSize.Height += (titlebarHeight)*scale;
         }
-        else if (_settings.GlobalSettings().AlwaysShowTabs() && !focusMode)
-        {
-            // Same comment as above, but with a TabRowControl.
-            //
-            // A note from before: For whatever reason, there's about 10px of
-            // unaccounted-for space in the application. I couldn't tell you
-            // where these 10px are coming from, but they need to be included in
-            // this math.
-            static constexpr auto tabRowHeight = 32;
-            proposedSize.Height += (tabRowHeight + 10) * scale;
-        }
-
         return proposedSize;
     }
 
@@ -1345,29 +1332,9 @@ namespace winrt::TerminalApp::implementation
         winrt::Windows::Foundation::Size pixelSize = { static_cast<float>(args.Width()), static_cast<float>(args.Height()) };
         const auto scale = static_cast<float>(DisplayInformation::GetForCurrentView().RawPixelsPerViewPixel());
 
-        if (!FocusMode())
-        {
-            if (!_settings.GlobalSettings().AlwaysShowTabs())
-            {
-                // Hide the title bar = off, Always show tabs = off.
-                static constexpr auto titlebarHeight = 10;
-                pixelSize.Height += (titlebarHeight)*scale;
-            }
-            else if (!_settings.GlobalSettings().ShowTabsInTitlebar())
-            {
-                // Hide the title bar = off, Always show tabs = on.
-                static constexpr auto titlebarAndTabBarHeight = 40;
-                pixelSize.Height += (titlebarAndTabBarHeight)*scale;
-            }
-            // Hide the title bar = on, Always show tabs = on.
-            // In this case, we don't add any height because
-            // NonClientIslandWindow::GetTotalNonClientExclusiveSize() gets
-            // called in AppHost::_resizeWindow and it already takes title bar
-            // height into account.  In other cases above
-            // IslandWindow::GetTotalNonClientExclusiveSize() is called, and it
-            // doesn't take the title bar height into account, so we have to do
-            // the calculation manually.
-        }
+        // The tab row is always hosted in the titlebar. NonClientIslandWindow
+        // already accounts for titlebar height during resize, so no extra tab
+        // row height is added here.
 
         args.Width(static_cast<int32_t>(pixelSize.Width));
         args.Height(static_cast<int32_t>(pixelSize.Height));

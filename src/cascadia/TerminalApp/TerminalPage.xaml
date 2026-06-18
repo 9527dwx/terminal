@@ -56,72 +56,13 @@
             </mux:InfoBar>
         </StackPanel>
 
-        <Grid x:Name="ContentRoot"
+        <Grid x:Name="TabContent"
               Grid.Row="2"
-              Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
               HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="VerticalTabColumn"
-                                  Width="0" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Border x:Name="VerticalTabRail"
-                    Grid.Column="0"
-                    Padding="6"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    Background="{ThemeResource TabViewBackground}"
-                    Opacity="0.92"
-                    Visibility="Collapsed">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                  VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="VerticalTabPanel" />
-                    </ScrollViewer>
-                    <StackPanel Grid.Row="1"
-                                Margin="0,8,0,0"
-                                Orientation="Horizontal">
-                        <mux:SplitButton x:Name="VerticalNewTabButton"
-                                         Width="88"
-                                         Height="28"
-                                         Padding="0"
-                                         Content="&#xE710;"
-                                         FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                         FontSize="12" />
-                        <Button x:Name="VerticalTabPlacementButton"
-                                Width="28"
-                                Height="28"
-                                Margin="6,0,0,0"
-                                Padding="0"
-                                Content="&#xE8A9;"
-                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                FontSize="12" />
-                        <Button x:Name="VerticalTabAutoHideButton"
-                                Width="28"
-                                Height="28"
-                                Margin="6,0,0,0"
-                                Padding="0"
-                                Content="&#xE73F;"
-                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                FontSize="12" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <Grid x:Name="TabContent"
-                  Grid.Column="1"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch">
-                <Grid.Background>
-                    <ImageBrush />
-                </Grid.Background>
-            </Grid>
+            <Grid.Background>
+                <ImageBrush />
+            </Grid.Background>
         </Grid>
 
         <!--

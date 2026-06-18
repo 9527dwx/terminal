@@ -54,7 +54,6 @@ namespace winrt::TerminalApp::implementation
 {
     namespace
     {
-        static constexpr int TabRowAnimationDurationInMilliseconds = 220;
         static constexpr uint64_t RuntimeLogMaxBytes = 2ull * 1024ull * 1024ull;
 
         std::string ToUtf8(const std::wstring_view value)
@@ -174,24 +173,6 @@ namespace winrt::TerminalApp::implementation
             value.Right = thickness;
             value.Bottom = thickness;
             return value;
-        }
-
-        void AnimateOpacity(const UIElement& element, const double targetOpacity)
-        {
-            if (!element)
-            {
-                return;
-            }
-
-            WUX::Media::Animation::Storyboard storyboard;
-            WUX::Media::Animation::DoubleAnimation animation;
-            animation.To(targetOpacity);
-            animation.Duration(DurationHelper::FromTimeSpan(winrt::Windows::Foundation::TimeSpan(std::chrono::milliseconds(TabRowAnimationDurationInMilliseconds))));
-            animation.EnableDependentAnimation(true);
-            storyboard.Children().Append(animation);
-            storyboard.SetTarget(animation, element);
-            storyboard.SetTargetProperty(animation, L"Opacity");
-            storyboard.Begin();
         }
     }
 
@@ -401,158 +382,28 @@ namespace winrt::TerminalApp::implementation
         // - we're not in full screen, or the user has enabled fullscreen tabs
         // - there is more than one tab, or the user has chosen to always show tabs
         const auto isVisible = !_isInFocusMode &&
-                               (!_isFullscreen || _showTabsFullscreen) &&
-                               (_settings.GlobalSettings().ShowTabsInTitlebar() ||
-                                (_tabs.Size() > 1) ||
-                                _settings.GlobalSettings().AlwaysShowTabs());
+                               (!_isFullscreen || _showTabsFullscreen);
 
-        const auto isVertical = _IsVerticalTabRow();
-        const auto autoHide = _IsAutoHideTabRow();
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateTabView visible={} vertical={} autoHide={} expanded={} tabs={}"),
-                               isVisible,
-                               isVertical,
-                               autoHide,
-                               _tabRowExpanded,
-                               _tabs.Size()));
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateTabView visible={} tabs={}"), isVisible, _tabs.Size()));
 
         if (_tabView)
         {
             // collapse/show the tabs themselves
-            _tabView.Visibility(isVisible && !isVertical ? Visibility::Visible : Visibility::Collapsed);
+            _tabView.Visibility(isVisible ? Visibility::Visible : Visibility::Collapsed);
         }
         if (_tabRow)
         {
             // collapse/show the row that the tabs are in.
             // NaN is the special value XAML uses for "Auto" sizing.
-            _tabRow.Visibility(isVisible && !isVertical ? Visibility::Visible : Visibility::Collapsed);
-            if (isVisible && !isVertical)
-            {
-                const auto showHorizontalTabRow = !autoHide || _tabRowExpanded;
-                _tabRow.Height(showHorizontalTabRow ? NAN : 0);
-                _tabRow.Opacity(showHorizontalTabRow ? 1.0 : 0.0);
-                _tabRow.Visibility(showHorizontalTabRow ? Visibility::Visible : Visibility::Collapsed);
-            }
-            else
-            {
-                _tabRow.Height(0);
-                _tabRow.Opacity(0.0);
-            }
-        }
-        if (VerticalTabRail())
-        {
-            VerticalTabRail().Visibility(isVisible && isVertical ? Visibility::Visible : Visibility::Collapsed);
-            if (VerticalTabColumn())
-            {
-                const auto width = isVisible && isVertical ? ((!autoHide || _tabRowExpanded) ? 220.0 : 8.0) : 0.0;
-                VerticalTabColumn().Width(GridLengthHelper::FromValueAndType(width, GridUnitType::Pixel));
-            }
-            if (isVisible && isVertical)
-            {
-                _SetTabRowExpanded(!autoHide || _tabRowExpanded);
-            }
-        }
-    }
-
-    bool TerminalPage::_IsVerticalTabRow() const
-    {
-        if (!_settings)
-        {
-            return false;
-        }
-
-        const auto placement = _settings.GlobalSettings().TabRowPlacement();
-        const std::wstring_view value{ placement.c_str(), placement.size() };
-        return value == L"left" || value == L"vertical";
-    }
-
-    bool TerminalPage::_IsAutoHideTabRow() const
-    {
-        return _settings && _settings.GlobalSettings().AutoHideTabRow();
-    }
-
-    void TerminalPage::_SetTabRowExpanded(const bool expanded)
-    {
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_SetTabRowExpanded begin expanded={} vertical={} autoHide={}"),
-                               expanded,
-                               _IsVerticalTabRow(),
-                               _IsAutoHideTabRow()));
-        _tabRowExpanded = expanded;
-        if (_IsVerticalTabRow())
-        {
-            const auto width = expanded ? 220.0 : 8.0;
-            if (VerticalTabColumn())
-            {
-                VerticalTabColumn().Width(GridLengthHelper::FromValueAndType(width, GridUnitType::Pixel));
-            }
-            VerticalTabRail().Opacity(expanded ? 0.92 : 0.35);
-            const auto visibility = expanded ? Visibility::Visible : Visibility::Collapsed;
-            VerticalTabPanel().Visibility(visibility);
-            VerticalNewTabButton().Visibility(visibility);
-            VerticalTabPlacementButton().Visibility(visibility);
-            VerticalTabAutoHideButton().Visibility(visibility);
-        }
-        else if (_tabRow)
-        {
-            const auto showHorizontalTabRow = !_IsAutoHideTabRow() || expanded;
-            _tabRow.Height(showHorizontalTabRow ? NAN : 0);
-            _tabRow.Opacity(showHorizontalTabRow ? 1.0 : 0.0);
-            _tabRow.Visibility(showHorizontalTabRow ? Visibility::Visible : Visibility::Collapsed);
-        }
-        RuntimeLog(L"_SetTabRowExpanded end");
-    }
-
-    void TerminalPage::_ToggleTabRowPlacement(const IInspectable&, const RoutedEventArgs&)
-    {
-        if (!_settings)
-        {
-            return;
-        }
-
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleTabRowPlacement before vertical={}"), _IsVerticalTabRow()));
-        _settings.GlobalSettings().TabRowPlacement(_IsVerticalTabRow() ? L"top" : L"left");
-        _tabRowExpanded = true;
-        _ApplyTabRowLayoutSettings();
-        LOG_IF_FAILED(_settings.WriteSettingsToDisk() ? S_OK : E_FAIL);
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleTabRowPlacement after vertical={}"), _IsVerticalTabRow()));
-    }
-
-    void TerminalPage::_ToggleAutoHideTabRow(const IInspectable&, const RoutedEventArgs&)
-    {
-        if (!_settings)
-        {
-            return;
-        }
-
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleAutoHideTabRow before autoHide={}"), _settings.GlobalSettings().AutoHideTabRow()));
-        _settings.GlobalSettings().AutoHideTabRow(!_settings.GlobalSettings().AutoHideTabRow());
-        _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
-        _ApplyTabRowLayoutSettings();
-        LOG_IF_FAILED(_settings.WriteSettingsToDisk() ? S_OK : E_FAIL);
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_ToggleAutoHideTabRow after autoHide={}"), _settings.GlobalSettings().AutoHideTabRow()));
-    }
-
-    void TerminalPage::_TabRowPointerEntered(const IInspectable&, const Input::PointerRoutedEventArgs&)
-    {
-        if (_IsAutoHideTabRow())
-        {
-            _SetTabRowExpanded(true);
-        }
-    }
-
-    void TerminalPage::_TabRowPointerExited(const IInspectable&, const Input::PointerRoutedEventArgs&)
-    {
-        if (_IsAutoHideTabRow())
-        {
-            _SetTabRowExpanded(false);
+            _tabRow.Visibility(isVisible ? Visibility::Visible : Visibility::Collapsed);
+            _tabRow.Height(isVisible ? NAN : 0);
+            _tabRow.Opacity(isVisible ? 1.0 : 0.0);
         }
     }
 
     void TerminalPage::_ApplyTabRowLayoutSettings()
     {
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_ApplyTabRowLayoutSettings begin vertical={} autoHide={} tabs={}"),
-                               _IsVerticalTabRow(),
-                               _IsAutoHideTabRow(),
-                               _tabs.Size()));
+        RuntimeLog(fmt::format(FMT_COMPILE(L"_ApplyTabRowLayoutSettings begin tabs={}"), _tabs.Size()));
         Media::SolidColorBrush borderBrush{ Windows::UI::Colors::White() };
         try
         {
@@ -591,173 +442,8 @@ namespace winrt::TerminalApp::implementation
             applyBorderResources(tab.TabViewItem().Resources());
         }
 
-        _UpdateVerticalTabRail();
         _UpdateTabView();
         RuntimeLog(L"_ApplyTabRowLayoutSettings end");
-    }
-
-    void TerminalPage::_UpdateVerticalTabRail()
-    {
-        if (!VerticalTabPanel())
-        {
-            RuntimeLog(L"_UpdateVerticalTabRail skipped: no panel");
-            return;
-        }
-
-        static constexpr std::wstring_view circledNumbers[] = {
-            L"\x2460", L"\x2461", L"\x2462", L"\x2463", L"\x2464", L"\x2465", L"\x2466", L"\x2467", L"\x2468", L"\x2469"
-        };
-
-        const auto focusedIndex = _GetFocusedTabIndex();
-        const auto tabCornerRadius = MakeUniformCornerRadius(4);
-        const auto tabBorderThickness = MakeUniformThickness(1);
-        RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail begin tabs={} focused={}"),
-                               _tabs.Size(),
-                               focusedIndex ? *focusedIndex : 0xffffffffu));
-        RuntimeLog(L"_UpdateVerticalTabRail clearing panel");
-        VerticalTabPanel().Children().Clear();
-        RuntimeLog(L"_UpdateVerticalTabRail panel cleared");
-        std::vector<std::pair<winrt::hstring, uint32_t>> titleCounts;
-        for (uint32_t i = 0; i < _tabs.Size(); ++i)
-        {
-            const auto tab = _tabs.GetAt(i);
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} begin hasIcon={} hasFlyout={}"),
-                                   i,
-                                   !tab.Icon().empty(),
-                                   static_cast<bool>(tab.TabViewItem().ContextFlyout())));
-            const auto title = tab.Title();
-            uint32_t titleCount = 1;
-            auto titleEntry = std::find_if(titleCounts.begin(), titleCounts.end(), [&title](const auto& entry) {
-                return entry.first == title;
-            });
-            if (titleEntry == titleCounts.end())
-            {
-                titleCounts.emplace_back(title, titleCount);
-            }
-            else
-            {
-                titleCount = ++titleEntry->second;
-            }
-            const auto ordinal = titleCount <= std::size(circledNumbers) ?
-                                     winrt::hstring{ circledNumbers[titleCount - 1] } :
-                                     til::hstring_format(FMT_COMPILE(L"({})"), titleCount);
-            const auto displayTitle = til::hstring_format(FMT_COMPILE(L"{} {}"), title, ordinal);
-
-            WUX::Controls::Border tabItem;
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create border"), i));
-            tabItem.Height(34);
-            tabItem.Margin({ 0, 0, 0, 4 });
-            tabItem.Padding({ 8, 4, 4, 0 });
-            tabItem.HorizontalAlignment(HorizontalAlignment::Stretch);
-            tabItem.BorderThickness(tabBorderThickness);
-            tabItem.CornerRadius(tabCornerRadius);
-            if (const auto border = Application::Current().Resources().TryLookup(box_value(L"TerminalTabBorderBrush")))
-            {
-                tabItem.BorderBrush(border.as<Media::Brush>());
-            }
-            if (focusedIndex && *focusedIndex == i)
-            {
-                tabItem.Opacity(1.0);
-            }
-            else
-            {
-                tabItem.Opacity(0.78);
-            }
-
-            WUX::Controls::Grid tabItemContent;
-            WUX::Controls::RowDefinition contentRow;
-            contentRow.Height(GridLengthHelper::FromValueAndType(1, GridUnitType::Star));
-            WUX::Controls::RowDefinition indicatorRow;
-            indicatorRow.Height(GridLengthHelper::FromValueAndType(3, GridUnitType::Pixel));
-            tabItemContent.RowDefinitions().Append(contentRow);
-            tabItemContent.RowDefinitions().Append(indicatorRow);
-            WUX::Controls::ColumnDefinition iconColumn;
-            iconColumn.Width(GridLengthHelper::FromValueAndType(22, GridUnitType::Pixel));
-            WUX::Controls::ColumnDefinition titleColumn;
-            titleColumn.Width(GridLengthHelper::FromValueAndType(1, GridUnitType::Star));
-            WUX::Controls::ColumnDefinition closeColumn;
-            closeColumn.Width(GridLengthHelper::FromValueAndType(28, GridUnitType::Pixel));
-            tabItemContent.ColumnDefinitions().Append(iconColumn);
-            tabItemContent.ColumnDefinitions().Append(titleColumn);
-            tabItemContent.ColumnDefinitions().Append(closeColumn);
-
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create stable icon"), i));
-            WUX::Controls::TextBlock iconBlock;
-            iconBlock.Text(L"\xE756");
-            iconBlock.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
-            iconBlock.FontSize(12);
-            iconBlock.HorizontalAlignment(HorizontalAlignment::Center);
-            iconBlock.VerticalAlignment(VerticalAlignment::Center);
-            WUX::Controls::Grid::SetColumn(iconBlock, 0);
-            tabItemContent.Children().Append(iconBlock);
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} stable icon appended"), i));
-
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create title"), i));
-            WUX::Controls::TextBlock titleBlock;
-            titleBlock.Text(displayTitle);
-            titleBlock.TextTrimming(TextTrimming::CharacterEllipsis);
-            titleBlock.VerticalAlignment(VerticalAlignment::Center);
-            if (focusedIndex && *focusedIndex == i)
-            {
-                titleBlock.FontWeight(FontWeights::Bold());
-            }
-            WUX::Controls::Grid::SetColumn(titleBlock, 1);
-            tabItemContent.Children().Append(titleBlock);
-
-            WUX::Controls::Button closeButton;
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create close button"), i));
-            closeButton.Width(24);
-            closeButton.Height(24);
-            closeButton.Padding({ 0, 0, 0, 0 });
-            closeButton.Content(box_value(L"\xE711"));
-            closeButton.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
-            closeButton.FontSize(10);
-            closeButton.VerticalAlignment(VerticalAlignment::Center);
-            closeButton.Click([weakThis{ get_weak() }, tab](auto&&, auto&&) {
-                if (const auto page{ weakThis.get() })
-                {
-                    page->_HandleCloseTabRequested(tab);
-                }
-            });
-            WUX::Controls::Grid::SetColumn(closeButton, 2);
-            tabItemContent.Children().Append(closeButton);
-
-            WUX::Controls::Border selectedIndicator;
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} create indicator"), i));
-            selectedIndicator.Height(3);
-            const auto indicatorRadius = MakeUniformCornerRadius(2);
-            selectedIndicator.CornerRadius(indicatorRadius);
-            selectedIndicator.HorizontalAlignment(HorizontalAlignment::Stretch);
-            selectedIndicator.Background(Media::SolidColorBrush{ Windows::UI::ViewManagement::UISettings().GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent) });
-            selectedIndicator.Visibility(focusedIndex && *focusedIndex == i ? Visibility::Visible : Visibility::Collapsed);
-            WUX::Controls::Grid::SetRow(selectedIndicator, 1);
-            WUX::Controls::Grid::SetColumnSpan(selectedIndicator, 3);
-            tabItemContent.Children().Append(selectedIndicator);
-
-            tabItem.Tapped([weakThis{ get_weak() }, i](auto&&, auto&&) {
-                if (const auto page{ weakThis.get() })
-                {
-                    page->_SelectTab(i);
-                }
-            });
-            tabItem.RightTapped([tab](auto&& sender, auto&& e) {
-                if (const auto target = sender.try_as<WUX::Controls::Border>())
-                {
-                    if (const auto flyout = tab.TabViewItem().ContextFlyout())
-                    {
-                        RuntimeLog(L"vertical tab right tapped: show flyout");
-                        flyout.ShowAt(target);
-                        e.Handled(true);
-                    }
-                }
-            });
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} attach child"), i));
-            tabItem.Child(tabItemContent);
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} append"), i));
-            VerticalTabPanel().Children().Append(tabItem);
-            RuntimeLog(fmt::format(FMT_COMPILE(L"_UpdateVerticalTabRail tab {} end"), i));
-        }
-        RuntimeLog(L"_UpdateVerticalTabRail end");
     }
 
     // Method Description:
@@ -1581,7 +1267,6 @@ namespace winrt::TerminalApp::implementation
             }
 
             tab.TabViewItem().StartBringIntoView();
-            _UpdateVerticalTabRail();
 
             // Raise an event that our title changed
             TitleChanged.raise(*this, nullptr);
@@ -1666,7 +1351,6 @@ namespace winrt::TerminalApp::implementation
                                      til::hstring_format(FMT_COMPILE(L"({})"), titleCount);
             tabImpl->UpdateDisplayTitle(til::hstring_format(FMT_COMPILE(L"{} {}"), title, ordinal));
         }
-        _UpdateVerticalTabRail();
     }
 
     // Method Description:

@@ -290,7 +290,6 @@ namespace winrt::TerminalApp::implementation
 
         if (_tabRow)
         {
-            _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
             _ApplyTabRowLayoutSettings();
         }
 
@@ -340,54 +339,19 @@ namespace winrt::TerminalApp::implementation
 
         auto tabRowImpl = winrt::get_self<implementation::TabRowControl>(_tabRow);
         _newTabButton = tabRowImpl->NewTabButton();
-        tabRowImpl->TabPlacementButton().Click({ get_weak(), &TerminalPage::_ToggleTabRowPlacement });
-        tabRowImpl->TabAutoHideButton().Click({ get_weak(), &TerminalPage::_ToggleAutoHideTabRow });
 
-        _verticalNewTabButton = VerticalNewTabButton();
-        _verticalNewTabButton.Click([weakThis{ get_weak() }](auto&&, auto&&) {
-            if (auto page{ weakThis.get() })
-            {
-                page->_OpenNewTerminalViaDropdown(NewTerminalArgs());
-            }
-        });
-        VerticalTabPlacementButton().Click({ get_weak(), &TerminalPage::_ToggleTabRowPlacement });
-        VerticalTabAutoHideButton().Click({ get_weak(), &TerminalPage::_ToggleAutoHideTabRow });
-        _tabRow.PointerEntered({ get_weak(), &TerminalPage::_TabRowPointerEntered });
-        _tabRow.PointerExited({ get_weak(), &TerminalPage::_TabRowPointerExited });
-        VerticalTabRail().PointerEntered({ get_weak(), &TerminalPage::_TabRowPointerEntered });
-        VerticalTabRail().PointerExited({ get_weak(), &TerminalPage::_TabRowPointerExited });
-
-        if (_settings.GlobalSettings().ShowTabsInTitlebar() && !_IsVerticalTabRow())
+        // Always host the horizontal tab row in the window titlebar.
+        uint32_t index = 0;
+        if (this->Root().Children().IndexOf(_tabRow, index))
         {
-            // Remove the TabView from the page. We'll hang on to it, we need to
-            // put it in the titlebar.
-            uint32_t index = 0;
-            if (this->Root().Children().IndexOf(_tabRow, index))
-            {
-                this->Root().Children().RemoveAt(index);
-            }
-
-            // Inform the host that our titlebar content has changed.
-            SetTitleBarContent.raise(*this, _tabRow);
-
-            // GH#13143 Manually set the tab row's background to transparent here.
-            //
-            // We're doing it this way because ThemeResources are tricky. We
-            // default in XAML to using the appropriate ThemeResource background
-            // color for our TabRow. When tabs in the titlebar are _disabled_,
-            // this will ensure that the tab row has the correct theme-dependent
-            // value. When tabs in the titlebar are _enabled_ (the default),
-            // we'll switch the BG to Transparent, to let the Titlebar Control's
-            // background be used as the BG for the tab row.
-            //
-            // We can't do it the other way around (default to Transparent, only
-            // switch to a color when disabling tabs in the titlebar), because
-            // looking up the correct ThemeResource from and App dictionary is a
-            // capital-H Hard problem.
-            const auto transparent = Media::SolidColorBrush();
-            transparent.Color(Windows::UI::Colors::Transparent());
-            _tabRow.Background(transparent);
+            this->Root().Children().RemoveAt(index);
         }
+
+        SetTitleBarContent.raise(*this, _tabRow);
+
+        const auto transparent = Media::SolidColorBrush();
+        transparent.Color(Windows::UI::Colors::Transparent());
+        _tabRow.Background(transparent);
         _updateThemeColors();
 
         // Initialize the state of the CloseButtonOverlayMode property of
@@ -441,10 +405,8 @@ namespace winrt::TerminalApp::implementation
         _tabView.TabDroppedOutside({ this, &TerminalPage::_onTabDroppedOutside });
 
         _CreateNewTabFlyout();
-        _verticalNewTabButton.Flyout(_newTabButton.Flyout());
 
         _UpdateTabWidthMode();
-        _tabRowExpanded = !_settings.GlobalSettings().AutoHideTabRow();
         _ApplyTabRowLayoutSettings();
 
         // Settings AllowDependentAnimations will affect whether animations are
@@ -5182,11 +5144,6 @@ namespace winrt::TerminalApp::implementation
         {
             // Nothing was set in the theme - fall back to our original `TabViewBackground` color.
             TitlebarBrush(backgroundSolidBrush);
-        }
-
-        if (!_settings.GlobalSettings().ShowTabsInTitlebar())
-        {
-            _tabRow.Background(TitlebarBrush());
         }
 
         // Second: Update the colors of our individual TabViewItems. This
