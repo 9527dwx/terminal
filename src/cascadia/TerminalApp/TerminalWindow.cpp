@@ -1330,7 +1330,6 @@ namespace winrt::TerminalApp::implementation
     void TerminalWindow::_WindowSizeChanged(const IInspectable&, winrt::Microsoft::Terminal::Control::WindowSizeChangedEventArgs args)
     {
         winrt::Windows::Foundation::Size pixelSize = { static_cast<float>(args.Width()), static_cast<float>(args.Height()) };
-        const auto scale = static_cast<float>(DisplayInformation::GetForCurrentView().RawPixelsPerViewPixel());
 
         // The tab row is always hosted in the titlebar. NonClientIslandWindow
         // already accounts for titlebar height during resize, so no extra tab
